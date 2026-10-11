@@ -2,7 +2,7 @@
   "manifest": "1.3",
   "id": "calendar.scheduling",
   "name": "Calendar Scheduling",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Gestió de calendari i reserves sobre Cal.diy (Cal.com): event types, disponibilitat (slots), schedules, bookings (crear/get/cancel·lar/reprogramar/confirmar), enllaços de calendari i generació d'URLs de reserva amb opcions. Integració de producte open source (SPEC §15c): stack Cal.diy declarat a platform_services[] i jobs interns via daemons[].",
   "author": "2mes4-gaudi",
   "repository": {
@@ -33,7 +33,7 @@
     {
       "id": "calcom-cron",
       "description": "Jobs periòdics de Cal.diy cada 5 min (recordatoris de reserves pendents, subscripcions de calendaris, triggers de webhooks) via /api/cron/* — MAI CronJob ad hoc (SPEC §14b/§15c)",
-      "command": "node dist/bin.js scheduling cron-tick --jobs bookingReminder,calendar-subscriptions,webhookTriggers --json",
+      "command": "node dist/bin.js scheduling cron-tick bookingReminder,calendar-subscriptions,webhookTriggers --json",
       "schedule": "*/5 * * * *",
       "enabled": true,
       "restart": "on-failure"
@@ -41,7 +41,7 @@
     {
       "id": "calcom-maintenance",
       "description": "Manteniment horari de Cal.diy (changeTimeZone, selected-calendars, syncAppMeta, neteja de subscripcions)",
-      "command": "node dist/bin.js scheduling cron-tick --jobs changeTimeZone,selected-calendars,syncAppMeta,calendar-subscriptions-cleanup --json",
+      "command": "node dist/bin.js scheduling cron-tick changeTimeZone,selected-calendars,syncAppMeta,calendar-subscriptions-cleanup --json",
       "schedule": "23 * * * *",
       "enabled": true,
       "restart": "on-failure"

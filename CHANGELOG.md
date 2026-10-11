@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2 — 2026-10-11
+
+- Fix: els daemons passaven `--jobs` al CLI, però `cron-tick` usa argument
+  posicional (el CLI es genera del registry). Desplegat a Ona.
+
 ## 0.1.1 — 2026-10-11
 
 - Stack calcom-web: SMTP de plataforma via @ref (GAUDI_SMTP_*) i control de
