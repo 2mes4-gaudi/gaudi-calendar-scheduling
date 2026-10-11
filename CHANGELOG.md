@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4 — 2026-10-11
+
+- calcom-api: límit de memòria 768Mi → 2Gi (OOMKilled al bootstrap de Nest).
+
 ## 0.1.3 — 2026-10-11
 
 - Client cron: fallback POST→GET amb HTTP 405 (calendar-subscriptions,
