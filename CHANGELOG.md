@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1 — 2026-10-11
+
+- Stack calcom-web: SMTP de plataforma via @ref (GAUDI_SMTP_*) i control de
+  registre amb NEXT_PUBLIC_DISABLE_SIGNUP=@ref:GAUDI_CALENDAR_DISABLE_SIGNUP.
+
 ## 0.1.0 — 2026-10-11
 
 - Primera versió del feature `calendar.scheduling` (manifest v1.3, SPEC §15c).
