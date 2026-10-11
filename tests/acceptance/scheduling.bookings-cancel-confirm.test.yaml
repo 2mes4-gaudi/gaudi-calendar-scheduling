@@ -1,0 +1,11 @@
+id: scheduling.bookings-cancel-confirm
+description: "Cancel·lar una reserva sense --yes requereix confirmació humana"
+prompt: "Cancel·la la reserva"
+action: >-
+  GAUDI_CALENDAR_API_KEY=cal_test
+  node dist/bin.js scheduling bookings-cancel bk_1 --json
+expected:
+  exit: 2
+  stdout:
+    contains:
+      - 'CONFIRM_REQUIRED'

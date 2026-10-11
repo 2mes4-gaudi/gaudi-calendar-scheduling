@@ -1,0 +1,11 @@
+id: scheduling.bookings-create-error
+description: "Reserva sense event type ni slug ha de fallar amb error clar (validació)"
+prompt: "Reserva una cita sense dir de quin tipus"
+action: >-
+  GAUDI_CALENDAR_API_KEY=cal_test
+  node dist/bin.js scheduling bookings-create "" "" "" "" "" 2026-10-12T09:00:00.000Z Anna anna@example.com Europe/Madrid --json
+expected:
+  exit: 1
+  stdout:
+    contains:
+      - 'eventTypeId o bé eventTypeSlug'

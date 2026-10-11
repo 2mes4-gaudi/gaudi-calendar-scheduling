@@ -1,0 +1,13 @@
+id: scheduling.booking-url
+description: "Generar un enllaç de reserva amb opcions (mes, dia i timezone), sense servidor"
+prompt: "Passa'm l'enllaç per reservar una consultoria"
+action: >-
+  GAUDI_CALENDAR_PUBLIC_URL=https://cal.apps.ona.gaudi.2mes4.com
+  GAUDI_CALENDAR_DEFAULT_USERNAME=ona
+  GAUDI_CALENDAR_DEFAULT_TIMEZONE=Europe/Madrid
+  node dist/bin.js scheduling booking-url consultoria eric "" "" "" 2026-11 2026-11-03 --json
+expected:
+  exit: 0
+  stdout:
+    contains:
+      - '"url": "https://cal.apps.ona.gaudi.2mes4.com/eric/consultoria?month=2026-11&date=2026-11-03&timeZone=Europe%2FMadrid"'

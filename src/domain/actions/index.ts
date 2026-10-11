@@ -1,69 +1,399 @@
-import { createRegistry } from "@gaudi/core";
 import { z } from "zod";
-import { helloInput, helloOutput, savedGreetingsOutput, searchInput, searchOutput, type Greeting } from "../model/greeting.js";
-import { healthOutput, type HealthOutput } from "../model/health.js";
-import { helloHandler } from "../services/greeting-service.js";
+import { createRegistry, type ActionRegistry, type ServiceContext } from "@gaudi/core";
+import type { SchedulingContext } from "../../ports/context.js";
+import { healthOutput } from "../model/health.js";
+import {
+  bookingUrlInput,
+  bookingUrlOutput,
+  bookingsBySeatInput,
+  bookingsCalendarLinksInput,
+  bookingsCancelInput,
+  bookingsConferencingSessionsInput,
+  bookingsConfirmInput,
+  bookingsCreateInput,
+  bookingsDeclineInput,
+  bookingsGetInput,
+  bookingsListInput,
+  bookingsMarkAbsentInput,
+  bookingsRecordingsInput,
+  bookingsReferencesInput,
+  bookingsRescheduleInput,
+  bookingsTranscriptsInput,
+  calendarLinksOutput,
+  conferencingSessionsOutput,
+  cronTickInput,
+  cronTickOutput,
+  eventTypeDeleteOutput,
+  eventTypeOutput,
+  eventTypesCreateInput,
+  eventTypesDeleteInput,
+  eventTypesGetInput,
+  eventTypesListInput,
+  eventTypesOutput,
+  eventTypesUpdateInput,
+  meGetInput,
+  meOutput,
+  recordingsOutput,
+  referencesOutput,
+  scheduleDeleteOutput,
+  scheduleOutput,
+  schedulesCreateInput,
+  schedulesDefaultInput,
+  schedulesDeleteInput,
+  schedulesGetInput,
+  schedulesListInput,
+  schedulesOutput,
+  schedulesUpdateInput,
+  slotsListInput,
+  slotsOutput,
+  transcriptsOutput,
+  bookingsOutput,
+  bookingOutput,
+} from "../model/calendar.js";
+import { buildBookingUrl } from "../services/booking-url.js";
+import {
+  cancelBooking,
+  confirmBooking,
+  createBooking,
+  declineBooking,
+  getBooking,
+  getBookingBySeat,
+  getBookingRecordings,
+  getBookingReferences,
+  getBookingTranscripts,
+  getCalendarLinks,
+  getConferencingSessions,
+  listBookings,
+  markAbsentBooking,
+  rescheduleBooking,
+} from "../services/bookings-service.js";
+import { cronTick } from "../services/cron-service.js";
+import {
+  createEventType,
+  deleteEventType,
+  getEventType,
+  listEventTypes,
+  updateEventType,
+} from "../services/event-types-service.js";
 import { checkHealth } from "../services/health-service.js";
+import { getMe } from "../services/me-service.js";
+import {
+  createSchedule,
+  deleteSchedule,
+  getDefaultSchedule,
+  getSchedule,
+  listSchedules,
+  updateSchedule,
+} from "../services/schedules-service.js";
+import { listSlots } from "../services/slots-service.js";
 
-type HelloInput = z.infer<typeof helloInput>;
-type HelloOutput = z.infer<typeof helloOutput>;
+function register<In, Out>(
+  registry: ActionRegistry,
+  def: {
+    id: string;
+    description: string;
+    inputSchema: z.ZodType<In>;
+    outputSchema: z.ZodType<Out>;
+    handler: (input: In, ctx: SchedulingContext) => Promise<Out>;
+    meta?: { destructive?: boolean; confirm?: "none" | "required" | "always"; permission?: string };
+  }
+) {
+  registry.register<In, Out>({
+    ...def,
+    handler: def.handler as unknown as (input: In, ctx: ServiceContext) => Promise<Out>,
+  });
+}
 
 /**
- * Registry del feature: UNA acción = UNA fuente de verdad.
- * El CLI, las tools de agente (Mastra/MCP) y la doc del skill se generan desde aquí.
+ * Registry del feature: UNA acció = UNA font de veritat.
+ * El CLI, les tools d'agent i la documentació del skill es generen d'aquí.
+ * Cobreix tota la superfície de l'API v2 de Cal.diy rellevant per a agents.
  */
-export function buildRegistry() {
+export function buildRegistry(): ActionRegistry {
   const registry = createRegistry();
 
-  registry.register<HelloInput, HelloOutput>({
-    id: "scheduling.hello",
-    description: "Saluda y persiste el saludo en la base de datos configurada (postgres).",
-    inputSchema: helloInput,
-    outputSchema: helloOutput,
-    handler: helloHandler,
-    meta: { destructive: false },
-  });
-
-  registry.register<{}, { greetings: Greeting[] }>({
-    id: "scheduling.greetings.list",
-    description: "Lista los saludos guardados.",
-    inputSchema: helloInput.pick({}),
-    outputSchema: savedGreetingsOutput,
-    handler: async (_input, ctx) => {
-      const rows = await ctx.db.listValues<Greeting>("greetings");
-      return { greetings: rows };
-    },
-    meta: { destructive: false },
-  });
-
-  // Cerca semàntica sobre l'índex Llull del feature (SPEC §16).
-  registry.register<z.infer<typeof searchInput>, z.infer<typeof searchOutput>>({
-    id: "scheduling.greetings.search",
-    description: "Cerca semàntica de saludos por texto (índex Llull gaudi-calendar-scheduling).",
-    inputSchema: searchInput,
-    outputSchema: searchOutput,
-    handler: async (input, ctx) => {
-      const pCtx = ctx as import("@gaudi/core").PlatformServiceContext;
-      if (!pCtx.llull) return { results: [], indexed: false };
-      const hits = await pCtx.llull.search("gaudi-calendar-scheduling", input.query, { limit: input.limit });
-      return {
-        results: (hits as any[])
-          .filter((h: any) => h.id !== "__seed__")
-          .map((h: any) => ({ id: h.id, title: h.title, score: h.score })),
-        indexed: true,
-      };
-    },
-    meta: { destructive: false },
-  });
-
-  // Health del feature (SPEC §18 nivell 1): OBLIGATORI a tot feature.
-  registry.register<{}, HealthOutput>({
+  register(registry, {
     id: "scheduling.health",
-    description: "Health del feature: DAO + elements externs declarats (SPEC §18).",
+    description: "Salut del feature: API v2, app web i credencials de Cal.diy (SPEC §18).",
     inputSchema: z.object({}),
     outputSchema: healthOutput,
     handler: async (_input, ctx) => checkHealth(ctx),
     meta: { destructive: false },
+  });
+
+  register(registry, {
+    id: "scheduling.me-get",
+    description: "Perfil de l'usuari autenticat a Cal.diy (id, username, email, timeZone) — útil abans de reservar.",
+    inputSchema: meGetInput,
+    outputSchema: meOutput,
+    handler: getMe,
+    meta: { destructive: false },
+  });
+
+  // ── Event types ─────────────────────────────────────────────────────────
+  register(registry, {
+    id: "scheduling.event-types-list",
+    description: "Llista els event types (tipus de cita reservables) de l'usuari.",
+    inputSchema: eventTypesListInput,
+    outputSchema: eventTypesOutput,
+    handler: listEventTypes,
+    meta: { destructive: false },
+  });
+
+  register(registry, {
+    id: "scheduling.event-types-get",
+    description: "Detall d'un event type pel seu id.",
+    inputSchema: eventTypesGetInput,
+    outputSchema: eventTypeOutput,
+    handler: getEventType,
+    meta: { destructive: false },
+  });
+
+  register(registry, {
+    id: "scheduling.event-types-create",
+    description: "Crea un event type (tipus de cita): títol, slug, durada i opcions (confirmation, buffers, seats...).",
+    inputSchema: eventTypesCreateInput,
+    outputSchema: eventTypeOutput,
+    handler: createEventType,
+    meta: { destructive: false, permission: "scheduling.write" },
+  });
+
+  register(registry, {
+    id: "scheduling.event-types-update",
+    description: "Actualitza un event type (només els camps indicats).",
+    inputSchema: eventTypesUpdateInput,
+    outputSchema: eventTypeOutput,
+    handler: updateEventType,
+    meta: { destructive: false, permission: "scheduling.write" },
+  });
+
+  register(registry, {
+    id: "scheduling.event-types-delete",
+    description: "Elimina un event type (les reserves existents no s'esborren).",
+    inputSchema: eventTypesDeleteInput,
+    outputSchema: eventTypeDeleteOutput,
+    handler: deleteEventType,
+    meta: { destructive: true, confirm: "required", permission: "scheduling.delete" },
+  });
+
+  // ── Disponibilitat ──────────────────────────────────────────────────────
+  register(registry, {
+    id: "scheduling.slots-list",
+    description:
+      "Franges disponibles (slots) d'un event type en un rang de dates, creuant els calendaris connectats.",
+    inputSchema: slotsListInput,
+    outputSchema: slotsOutput,
+    handler: listSlots,
+    meta: { destructive: false },
+  });
+
+  // ── Bookings ────────────────────────────────────────────────────────────
+  register(registry, {
+    id: "scheduling.bookings-list",
+    description: "Llista reserves amb filtres (estat, email d'assistent, event type, dates, paginació).",
+    inputSchema: bookingsListInput,
+    outputSchema: bookingsOutput,
+    handler: listBookings,
+    meta: { destructive: false },
+  });
+
+  register(registry, {
+    id: "scheduling.bookings-get",
+    description: "Detall d'una reserva pel seu UID (o totes les recurrències d'una reserva recurrent).",
+    inputSchema: bookingsGetInput,
+    outputSchema: bookingOutput,
+    handler: getBooking,
+    meta: { destructive: false },
+  });
+
+  register(registry, {
+    id: "scheduling.bookings-by-seat",
+    description: "Reserva per seatUid (bookings amb seients).",
+    inputSchema: bookingsBySeatInput,
+    outputSchema: bookingOutput,
+    handler: getBookingBySeat,
+    meta: { destructive: false },
+  });
+
+  register(registry, {
+    id: "scheduling.bookings-create",
+    description:
+      "Crea una reserva per a un event type (id o slug+username) en una data UTC, amb assistent (nom/email/timezone), convidats, notes i metadata.",
+    inputSchema: bookingsCreateInput,
+    outputSchema: bookingOutput,
+    handler: createBooking,
+    meta: { destructive: false, permission: "scheduling.write" },
+  });
+
+  register(registry, {
+    id: "scheduling.bookings-reschedule",
+    description: "Reprograma una reserva a un nou inici (UTC ISO).",
+    inputSchema: bookingsRescheduleInput,
+    outputSchema: bookingOutput,
+    handler: rescheduleBooking,
+    meta: { destructive: false, permission: "scheduling.write" },
+  });
+
+  register(registry, {
+    id: "scheduling.bookings-cancel",
+    description: "Cancel·la una reserva amb motiu opcional.",
+    inputSchema: bookingsCancelInput,
+    outputSchema: bookingOutput,
+    handler: cancelBooking,
+    meta: { destructive: true, confirm: "required", permission: "scheduling.write" },
+  });
+
+  register(registry, {
+    id: "scheduling.bookings-confirm",
+    description: "Confirma una reserva pendent (event types amb requiresConfirmation).",
+    inputSchema: bookingsConfirmInput,
+    outputSchema: bookingOutput,
+    handler: confirmBooking,
+    meta: { destructive: false, permission: "scheduling.write" },
+  });
+
+  register(registry, {
+    id: "scheduling.bookings-decline",
+    description: "Rebutja una reserva pendent amb motiu opcional.",
+    inputSchema: bookingsDeclineInput,
+    outputSchema: bookingOutput,
+    handler: declineBooking,
+    meta: { destructive: true, confirm: "required", permission: "scheduling.write" },
+  });
+
+  register(registry, {
+    id: "scheduling.bookings-mark-absent",
+    description: "Marca no-presentats (attendees/hosts per email) en una reserva passada.",
+    inputSchema: bookingsMarkAbsentInput,
+    outputSchema: bookingOutput,
+    handler: markAbsentBooking,
+    meta: { destructive: false, permission: "scheduling.write" },
+  });
+
+  register(registry, {
+    id: "scheduling.bookings-calendar-links",
+    description: "Enllaços «Afegir al calendari» d'una reserva (Google, Outlook, Office, ICS).",
+    inputSchema: bookingsCalendarLinksInput,
+    outputSchema: calendarLinksOutput,
+    handler: getCalendarLinks,
+    meta: { destructive: false },
+  });
+
+  register(registry, {
+    id: "scheduling.bookings-references",
+    description: "Referències externes d'una reserva (calendaris/videotrucada) amb filtres.",
+    inputSchema: bookingsReferencesInput,
+    outputSchema: referencesOutput,
+    handler: getBookingReferences,
+    meta: { destructive: false },
+  });
+
+  register(registry, {
+    id: "scheduling.bookings-recordings",
+    description: "Gravacions de Cal Video d'una reserva.",
+    inputSchema: bookingsRecordingsInput,
+    outputSchema: recordingsOutput,
+    handler: getBookingRecordings,
+    meta: { destructive: false },
+  });
+
+  register(registry, {
+    id: "scheduling.bookings-transcripts",
+    description: "Enllaços de transcripció de Cal Video d'una reserva (caducen en 1h).",
+    inputSchema: bookingsTranscriptsInput,
+    outputSchema: transcriptsOutput,
+    handler: getBookingTranscripts,
+    meta: { destructive: false },
+  });
+
+  register(registry, {
+    id: "scheduling.bookings-conferencing-sessions",
+    description: "Sessions de videotrucada d'una reserva (Cal Video).",
+    inputSchema: bookingsConferencingSessionsInput,
+    outputSchema: conferencingSessionsOutput,
+    handler: getConferencingSessions,
+    meta: { destructive: false },
+  });
+
+  // ── Schedules (disponibilitat recurrent) ───────────────────────────────
+  register(registry, {
+    id: "scheduling.schedules-list",
+    description: "Llista els horaris (schedules) de l'usuari.",
+    inputSchema: schedulesListInput,
+    outputSchema: schedulesOutput,
+    handler: listSchedules,
+    meta: { destructive: false },
+  });
+
+  register(registry, {
+    id: "scheduling.schedules-get",
+    description: "Detall d'un horari pel seu id.",
+    inputSchema: schedulesGetInput,
+    outputSchema: scheduleOutput,
+    handler: getSchedule,
+    meta: { destructive: false },
+  });
+
+  register(registry, {
+    id: "scheduling.schedules-default",
+    description: "Horari per defecte de l'usuari.",
+    inputSchema: schedulesDefaultInput,
+    outputSchema: scheduleOutput,
+    handler: getDefaultSchedule,
+    meta: { destructive: false },
+  });
+
+  register(registry, {
+    id: "scheduling.schedules-create",
+    description: "Crea un horari (nom, timezone, disponibilitat setmanal) i opcionalment el marca per defecte.",
+    inputSchema: schedulesCreateInput,
+    outputSchema: scheduleOutput,
+    handler: createSchedule,
+    meta: { destructive: false, permission: "scheduling.write" },
+  });
+
+  register(registry, {
+    id: "scheduling.schedules-update",
+    description: "Actualitza un horari (nom, timezone, disponibilitat, per defecte).",
+    inputSchema: schedulesUpdateInput,
+    outputSchema: scheduleOutput,
+    handler: updateSchedule,
+    meta: { destructive: false, permission: "scheduling.write" },
+  });
+
+  register(registry, {
+    id: "scheduling.schedules-delete",
+    description: "Elimina un horari (no pot ser el darrer/únic).",
+    inputSchema: schedulesDeleteInput,
+    outputSchema: scheduleDeleteOutput,
+    handler: deleteSchedule,
+    meta: { destructive: true, confirm: "required", permission: "scheduling.delete" },
+  });
+
+  // ── Enllaços de reserva i jobs interns ─────────────────────────────────
+  register(registry, {
+    id: "scheduling.booking-url",
+    description:
+      "Genera l'enllaç públic de reserva amb opcions: mes/dia/slot, timezone, durada, prefill (nom/email/convidats/notes), layout, embed, tema i metadata.",
+    inputSchema: bookingUrlInput,
+    outputSchema: bookingUrlOutput,
+    handler: async (input, ctx) =>
+      buildBookingUrl(input, {
+        publicUrl: ctx.config.publicUrl,
+        defaultUsername: ctx.config.defaultUsername,
+        defaultTimeZone: ctx.config.defaultTimeZone,
+      }),
+    meta: { destructive: false },
+  });
+
+  register(registry, {
+    id: "scheduling.cron-tick",
+    description:
+      "Executa els jobs interns de Cal.diy (recordatoris, subscripcions, triggers de webhooks). Els invoquen els daemons calcom-cron/calcom-maintenance.",
+    inputSchema: cronTickInput,
+    outputSchema: cronTickOutput,
+    handler: cronTick,
+    meta: { destructive: false, permission: "scheduling.write" },
   });
 
   return registry;

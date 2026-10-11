@@ -1,0 +1,15 @@
+id: scheduling.bookings-create
+description: "L'usuari demana agendar una cita i el sistema crea la reserva"
+prompt: "Agenda'm una consultoria dilluns que ve a les 11"
+action: >-
+  GAUDI_CALENDAR_API_BASE=http://127.0.0.1:4599
+  GAUDI_CALENDAR_API_KEY=cal_test
+  node dist/bin.js scheduling bookings-create 11 "" "" "" "" 2026-10-12T09:00:00.000Z Anna anna@example.com Europe/Madrid --json
+setup:
+  - "node tests/mock-calcom.mjs & sleep 0.5"
+expected:
+  exit: 0
+  stdout:
+    contains:
+      - '"uid": "bk_new"'
+      - '"name": "Anna"'

@@ -1,167 +1,93 @@
-# Calendar Scheduling
+# gaudi-calendar-scheduling
 
-Gestió de calendari i reserves sobre Cal.diy (Cal.com): event types, disponibilitat, bookings, URLs de reserva i operació via CLI per agents. Integració de producte open source (SPEC 15c).
+Feature de la plataforma **Gaudi** que integra **Cal.diy** (l'edició open source
+de Cal.com, MIT) com a mòdul de calendari i reserves, amb una superfície CLI
+completa per a agents i un stack de producte declaratiu desplegat a K3s.
 
-> Template del estándar @gaudi (manifest v1.1). Generado por el constructor
-> `gaudi` desde el repo `core`. Toda la documentación del estándar vive en
-> `workspace/core/docs/` (MANIFESTO.md, SPEC.md, schema/).
+- **Feature id**: `calendar.scheduling` · **Manifest**: v1.3 (SPEC §15c)
+- **Superfície agent**: CLI `scheduling ... --json` + skill `scheduling`
+- **Producte**: Cal.diy `v6.2.0` (web Next.js + API v2 + PostgreSQL + Redis)
+- **Domini públic**: `cal.apps.ona.gaudi.2mes4.com` (convenció `<app>.apps.<agent>.<domain>`)
+- **Estètica**: cap UI pròpia — la interfície és la de Cal.diy; l'agent opera per CLI.
 
-## Estructura estándar
+## Què fa
 
-> `platform/` contiene el código de los SERVICIOS DE PLATAFORMA COMPARTIDOS que
-> el feature aporta (repositorios centrales, DBs multi-agent, APIs públicas).
-> Se desplegan en el ámbito de plataforma (`platform.k8s.namespace`) —
-> declarados en `platform_services[]` del manifest.
-> El primer feature que los instala los despliega; los demás verifican.
+| Família | Accions |
+|---|---|
+| Identitat | `me-get`, `health` |
+| Event types | `event-types-list/get/create/update/delete` |
+| Disponibilitat | `slots-list`, `schedules-list/get/default/create/update/delete` |
+| Reserves | `bookings-list/get/by-seat/create/reschedule/cancel/confirm/decline/mark-absent` |
+| Material reserva | `bookings-calendar-links/references/recordings/transcripts/conferencing-sessions` |
+| Enllaços | `booking-url` (mes/dia/slot, timezone, durada, prefill, layout, embed, tema, metadata) |
+| Jobs interns | `cron-tick` (executat pels daemons `calcom-cron` i `calcom-maintenance`) |
 
+## Desplegament (resum)
 
-```
-.
-├── gaudi-feature.yaml       # CONTRATO: manifest v1.1 (id, deps, acciones, credenciales, datos, AI harness, lifecycle)
-├── ai-assets/               # AI harness: todo lo que el feature expone al agente
-│   ├── agents/              # agentes propios (<id>.md, frontmatter name+description+tools+skills)
-│   └── skills/              # skills propios (<id>/SKILL.md, frontmatter name+description)
-├── src/
-│   ├── domain/              # CAPA 1 · lógica pura: model (zod), actions (registry), services — sin frameworks
-│   ├── ports/               # CAPA 2 · interfaces: DAOs (postgres) + CredentialProvider
-│   ├── adapters/            # CAPA 3 · CLI agente-friendly + tools Mastra/MCP (desde el registry)
-│   ├── config/              # carga ~/.gaudi/gaudi.yaml (DAO y credenciales globales)
-│   ├── index.ts             # exports públicos del feature
-│   ├── bin.ts               # entry CLI (dist/bin.js)
-│   └── server.ts            # entry API + UI (dist/server.js) — Hono serveix /api + / (UI embeguda)
-├── packages/core/           # runtime @gaudi/core local (vía file:) — el esqueleto de las 3 capas
-├── scripts/                 # hooks lifecycle (install.sh, uninstall.sh, verify.sh)
-├── tests/                   # tests de las capas
-└── ui/                      # (opcional) UI schema-driven (React+Vite, embeguda a la imatge de l'API)
-```
+1. **DNS**: crea un registre A `cal.apps.ona.gaudi.2mes4.com → 161.97.75.144`.
+2. **Variables de plataforma** (abans del primer deploy):
+   ```bash
+   gaudi env set GAUDI_CALENDAR_PUBLIC_URL https://cal.apps.ona.gaudi.2mes4.com --scope platform --no-secret
+   gaudi env set GAUDI_CALENDAR_API_BASE http://calcom-api:8080 --scope platform --no-secret
+   gaudi env set GAUDI_CALENDAR_WEB_BASE http://calcom-web:3000 --scope platform --no-secret
+   gaudi env set GAUDI_CALENDAR_DEFAULT_USERNAME <el-teu-username> --scope platform --no-secret
+   gaudi env set GAUDI_CALENDAR_DEFAULT_TIMEZONE Europe/Madrid --scope platform --no-secret
+   gaudi env sync-k8s --namespace gaudi-platform
+   ```
+3. **Deploy del stack** (només des del HOST amb kubectl/SSH, no des del pod del kernel):
+   afegeix el feature al blueprint (`workspace/blueprints/kernel/platform.yaml`) i
+   executa `gaudi deploy`, o bé `gaudi feature install <aquest repo>` des del host.
+   El primer deploy crea: `calcom-db` (Postgres+PVC), `calcom-cache` (Redis+PVC),
+   `calcom-web` (Ingress TLS + Certificate, secrets generats, **bootstrap `npx prisma migrate deploy`**)
+   i `calcom-api` (API v2 interna).
+4. **Bootstrap d'admin** (un cop, a la UI): obre `https://cal.apps.ona.gaudi.2mes4.com`,
+   crea el compte propietari, connecta el calendari (Google/Microsoft) i crea una
+   **API key** (Settings → Developer → API Keys). Desa-la i desactiva registres:
+   ```bash
+   gaudi env set GAUDI_CALENDAR_API_KEY cal_xxx --scope platform
+   gaudi env set GAUDI_CALENDAR_CRON_KEY <CRON_API_KEY del secret calcom-web> --scope platform
+   gaudi env sync-k8s --namespace gaudi-platform
+   # després, a la config de calcom-web: NEXT_PUBLIC_DISABLE_SIGNUP=true (i redeploy del servei)
+   ```
+5. **Verificació**: `node dist/bin.js scheduling health --json` (ok: true).
 
-Reglas: los features NUNCA leen `process.env` (usan `ctx.credentials`); la
-lógica de negocio NUNCA importa commander/express/hono; cada acción declarada
-en el manifest tiene UNA fuente de verdad en el registry.
-Toda la computación y daemons corren exclusivamente en K3s (prohibido el uso
-de Cloud Functions o App Engine).
+## Imatges del producte (CI)
 
-## Manifest
+El stack corre amb imatges pròpies construïdes pel workflow
+[`.github/workflows/docker.yml`](.github/workflows/docker.yml) a partir del codi
+de `calcom/cal.diy` **pinat** (`v6.2.0`) i publicades a ghcr:
 
-```yaml
-id: calendar.scheduling
-version: 0.1.0
-```
+- `ghcr.io/2mes4-gaudi/caldiy-web:v6.2.0` (`NEXT_PUBLIC_WEBAPP_URL` incrustada al build)
+- `ghcr.io/2mes4-gaudi/caldiy-api-v2:v6.2.0` (API v2 standalone; upstream no publica imatge)
 
-## Acciones
+Upgrade del producte = bump del tag al manifest + release del feature.
 
-| Acción | Descripción | Destructiva | Confirmación |
-|---|---|---|---|
-| (generado desde el registry — ver `src/domain/actions/`) | | | |
+## Operació
 
-## Uso (CLI)
+- **Migracions**: les executa el `bootstrap` del servei `calcom-web` a cada deploy (idempotent).
+- **Jobs interns**: els executen els daemons del feature (`daemons[]`), MAI CronJobs ad hoc.
+- **Canvi d'env del stack**: el desplegador només redeploya si canvia la imatge;
+  per canviar env cal esborrar el Deployment i tornar a desplegar (documentat a SPEC §15c).
+- **Uninstall**: elimina Deployments/Services/Ingress; **conserva PVCs i el Secret**
+  `calcom-web-secret` (claus de xifratge NEXTAUTH/CALENDSO: sense elles les dades són inservibles).
+
+## Desenvolupament
 
 ```bash
 npm install
-npm run build
-
-# Sin config global: usa memoria
-node dist/bin.js scheduling.hello mundo --json
-
-# Con config global (~/.gaudi/gaudi.yaml): usa postgres
-npx scheduling scheduling.hello mundo --json
+npm run build       # tsc → dist/
+npm test            # unit tests (node:test)
+# smoke amb mock local (sense clúster):
+node tests/mock-calcom.mjs &
+GAUDI_CALENDAR_API_BASE=http://127.0.0.1:4599 GAUDI_CALENDAR_API_KEY=cal_test \
+  node dist/bin.js scheduling event-types-list --json
 ```
 
-## Integración con agentes (Mastra/MCP)
+Acceptance tests (sandbox de plataforma): `tests/acceptance/*.test.yaml`.
 
-```ts
-import { buildRegistry, toMastraTools } from "@gaudi/calendar.scheduling";
-const tools = toMastraTools(buildRegistry(), ctx); // mismo contrato que el CLI
-```
+## Llicència i atribució
 
-## Arquitectura
-
-```
-src/
-├── domain/       # lógica pura: model (zod) + actions (registry) + services
-├── ports/        # DAOs (postgres) + CredentialProvider (en @gaudi/core)
-├── adapters/     # cli (agente-friendly) + agent (mastra/mcp) — en @gaudi/core
-└── config/       # carga ~/.gaudi/gaudi.yaml (DAOs y credenciales globales)
-```
-
-## Tests
-
-- **Unitarios de capas** (`tests/`): `npm test` (ciclo de vida base del core).
-- **Aceptación E2E** (`tests/acceptance/*.test.yaml`): prompts cortos + acción +
-  resultado esperado, ejecutados con el skill `gaudi-feature-tester` en el
-  sandbox Docker (opencode + skills mapeados + CLI + postgres aislado por test):
-  ```bash
-  bash workspace/core/sandbox/run-tests.sh <feature-dir>
-  ```
-
-## Mensajería de plataforma (cua única)
-
-TODOS los features publican sus comunicaciones hacia el usuario/agente principal
-en la **MISMA cua** (`gaudi.notifications`, port `MessageBus` de `@gaudi/core`,
-transport NATS JetStream):
-
-- **Hacia el usuario/agente** (inbound, fin de procesos, errores) → SIEMPRE por
-  la cua: `ctx.messageBus.publish({ type: "<feature>.<evento>", correlationId, payload })`.
-- **Acciones hacia fuera** (emails a terceros: invitaciones, cancelaciones) →
-  directas (SMTP), no pasan por la cua.
-
-Declarar en el manifest:
-
-```yaml
-messaging:
-  queue: gaudi.notifications
-  topics:
-    - name: gaudi.notifications
-      mode: publish
-```
-
-Sin conexión NATS, el bus se degrada con gracia (`{ published: false }`).
-La suscripción de agentes (`subscribe`) es contrato futuro.
-
-## Versions i release (sistema de versionat)
-
-- **Semver per tags**: cada versió publicada és un tag `v<major>.<minor>.<patch>`
-  que coincideix amb `version` del manifest. L'installer resol: `version` →
-  tag; sense versió → `HEAD` de `main`.
-- **Release = acció del DEVELOPER** (mai de l'installer): `gaudi feature release`
-  talla el tag `v<version>` + changelog i el hook del registry publica la versió
-  al catàleg CENTRAL. **No hi ha imatges per feature** (SPEC §1): el feature és
-  un mòdul; l'API la munta el gateway i la UI la copia l'installer.
-- **Deploy = acció de l'INSTALLER** (automàtic): el daemon `release-watcher` del
-  registry detecta la versió nova i `registry.apply-updates` delega en
-  `installer.update` (re-copia CLI/UI al webserver) + `installer.deploy-platform`
-  (gateway amb el tag nou si usa deps fixes).
-
-## API + UI (model gateway — un sol origen)
-
-Quan el feature té `architecture.api: true` i `ui/`, exposa `createXxxApp`
-(API) i construeix `ui/dist` (UI). La plataforma les publica sota
-`/<feature>/api` (API, muntada pel GATEWAY) i `/<feature>/` (UI, servida pel
-WEBSERVER des de `GAUDI_UI_DIR/<feature>`). El server local serveix API+UI
-només per desenvolupament/tests; en producció corre el gateway, mai el server
-del feature.
-- **Dependències entre features**: al manifest
-  (`dependencies.features[]` → `{id, repository, version?}`). La resolució i
-  instal·lació topològica la fa l'installer; aquí només es declaren.
-
-## Dependencias
-
-Ver `gaudi-feature.yaml` → `dependencies` (features, packages, mcp).
-
-## Ciclo de vida (base en el core)
-
-El core integra la base del ciclo de vida — los scripts de `scripts/` son hooks
-**complementarios** que el core invoca tras el paso base si existen:
-
-```bash
-gaudi feature install <dir>     # 1. validar manifest · 2. npm install (preinstall build-core) · 3. npm run build · 4. hook install · 5. catálogo
-gaudi feature uninstall <dir>   # 1. hook uninstall · 2. baja del catálogo core.registry
-gaudi feature verify <dir>      # 1. validar manifest · 2. npm test · 3. hook verify · 4. estado en el catálogo
-gaudi feature publish <id>      # registra el feature instalado en core.registry
-```
-
-- `scripts/install.sh` → pasos específicos tras instalar (colecciones/tablas, seeds).
-- `scripts/uninstall.sh` → limpieza específica tras desinstalar.
-- `scripts/verify.sh` → chequeos específicos tras el test base (smoke tests propios).
-- `scripts/build-core.js` → bootstrap del `packages/core` local (preinstall de
-  `npm install`; el core lo dispara igualmente al instalar).
+- Aquest repo: **MIT** (vegeu `LICENSE`).
+- Cal.diy és © Cal.com, Inc. sota llicència **MIT** (`https://github.com/calcom/cal.diy`).
+  Aquest feature no modifica el codi de Cal.diy: en declara el desplegament i
+  l'opera per la seva API pública. "Cal" és marca registrada de Cal.com, Inc.

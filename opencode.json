@@ -4,7 +4,7 @@
     "scheduling": {
       "command": ["node", "dist/bin.js", "mcp", "--stdio"],
       "enabled": false,
-      "description": "MCP del feature calendar.scheduling — descomentar para activar local"
+      "description": "Reservat: MCP del feature calendar.scheduling (fase 2). L'operativa v1 és via CLI `scheduling` i el skill."
     }
   },
   "skills": {

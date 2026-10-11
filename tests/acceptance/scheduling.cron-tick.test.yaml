@@ -1,0 +1,15 @@
+id: scheduling.cron-tick
+description: "Els daemons calcom-cron/calcom-maintenance executen els jobs interns del producte"
+prompt: "Manteniment periòdic del calendari"
+action: >-
+  GAUDI_CALENDAR_WEB_BASE=http://127.0.0.1:4599
+  GAUDI_CALENDAR_CRON_KEY=cron_test_key
+  node dist/bin.js scheduling cron-tick bookingReminder,webhookTriggers --json
+setup:
+  - "node tests/mock-calcom.mjs & sleep 0.5"
+expected:
+  exit: 0
+  stdout:
+    contains:
+      - '"ok": true'
+      - '"job": "bookingReminder"'

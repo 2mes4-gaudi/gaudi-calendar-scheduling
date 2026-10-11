@@ -1,9 +1,9 @@
 {
-  "manifest": "1.2",
+  "manifest": "1.3",
   "id": "calendar.scheduling",
   "name": "Calendar Scheduling",
   "version": "0.1.0",
-  "description": "Gestió de calendari i reserves sobre Cal.diy (Cal.com): event types, disponibilitat, bookings, URLs de reserva i operació via CLI per agents. Integració de producte open source (SPEC 15c).",
+  "description": "Gestió de calendari i reserves sobre Cal.diy (Cal.com): event types, disponibilitat (slots), schedules, bookings (crear/get/cancel·lar/reprogramar/confirmar), enllaços de calendari i generació d'URLs de reserva amb opcions. Integració de producte open source (SPEC §15c): stack Cal.diy declarat a platform_services[] i jobs interns via daemons[].",
   "author": "2mes4-gaudi",
   "repository": {
     "type": "github",
@@ -12,20 +12,12 @@
   },
   "architecture": {
     "cli": true,
-    "api": true,
-    "apiStack": "hono",
-    "agent": ["mastra"],
-    "database": ["postgres"],
-    "ui": true
-  },
-  "security": {
-    "api": {
-      "auth": "none"
-    }
+    "api": false,
+    "agent": ["mastra"]
   },
   "dependencies": {
     "features": [],
-    "packages": ["@gaudi/core@^1.9", "hono@^4.6", "zod@^3.23", "drizzle-orm@^0.33", "pg@^8.12"],
+    "packages": ["@gaudi/core@^1.9", "zod@^3.23"],
     "mcp": []
   },
   "messaging": {
@@ -37,128 +29,250 @@
       }
     ]
   },
-  "llull": {
-    "indexes": [
-      {
-        "name": "gaudi-calendar-scheduling",
-        "description": "Saludos guardados del feature (campos: title=mensaje, content)."
-      }
-    ]
-  },
   "daemons": [
     {
-      "id": "example-watcher",
-      "description": "Ejemplo cron — publica un tick de salud por el bus del agente (SPEC §14b)",
-      "command": "node dist/daemons/example-watcher.js",
-      "schedule": "0-59/15 * * * *",
-      "enabled": false,
+      "id": "calcom-cron",
+      "description": "Jobs periòdics de Cal.diy cada 5 min (recordatoris de reserves pendents, subscripcions de calendaris, triggers de webhooks) via /api/cron/* — MAI CronJob ad hoc (SPEC §14b/§15c)",
+      "command": "node dist/bin.js scheduling cron-tick --jobs bookingReminder,calendar-subscriptions,webhookTriggers --json",
+      "schedule": "*/5 * * * *",
+      "enabled": true,
+      "restart": "on-failure"
+    },
+    {
+      "id": "calcom-maintenance",
+      "description": "Manteniment horari de Cal.diy (changeTimeZone, selected-calendars, syncAppMeta, neteja de subscripcions)",
+      "command": "node dist/bin.js scheduling cron-tick --jobs changeTimeZone,selected-calendars,syncAppMeta,calendar-subscriptions-cleanup --json",
+      "schedule": "23 * * * *",
+      "enabled": true,
       "restart": "on-failure"
     }
   ],
-  "pods": [
+  "actions": [
+    { "id": "scheduling.health", "destructive": false },
+    { "id": "scheduling.me-get", "destructive": false },
+    { "id": "scheduling.event-types-list", "destructive": false },
+    { "id": "scheduling.event-types-get", "destructive": false },
+    { "id": "scheduling.event-types-create", "destructive": false, "permission": "scheduling.write" },
+    { "id": "scheduling.event-types-update", "destructive": false, "permission": "scheduling.write" },
+    { "id": "scheduling.event-types-delete", "destructive": true, "confirm": "required", "permission": "scheduling.delete" },
+    { "id": "scheduling.slots-list", "destructive": false },
+    { "id": "scheduling.bookings-list", "destructive": false },
+    { "id": "scheduling.bookings-get", "destructive": false },
+    { "id": "scheduling.bookings-by-seat", "destructive": false },
+    { "id": "scheduling.bookings-create", "destructive": false, "permission": "scheduling.write" },
+    { "id": "scheduling.bookings-reschedule", "destructive": false, "permission": "scheduling.write" },
+    { "id": "scheduling.bookings-cancel", "destructive": true, "confirm": "required", "permission": "scheduling.write" },
+    { "id": "scheduling.bookings-confirm", "destructive": false, "permission": "scheduling.write" },
+    { "id": "scheduling.bookings-decline", "destructive": true, "confirm": "required", "permission": "scheduling.write" },
+    { "id": "scheduling.bookings-mark-absent", "destructive": false, "permission": "scheduling.write" },
+    { "id": "scheduling.bookings-calendar-links", "destructive": false },
+    { "id": "scheduling.bookings-references", "destructive": false },
+    { "id": "scheduling.bookings-recordings", "destructive": false },
+    { "id": "scheduling.bookings-transcripts", "destructive": false },
+    { "id": "scheduling.bookings-conferencing-sessions", "destructive": false },
+    { "id": "scheduling.schedules-list", "destructive": false },
+    { "id": "scheduling.schedules-get", "destructive": false },
+    { "id": "scheduling.schedules-default", "destructive": false },
+    { "id": "scheduling.schedules-create", "destructive": false, "permission": "scheduling.write" },
+    { "id": "scheduling.schedules-update", "destructive": false, "permission": "scheduling.write" },
+    { "id": "scheduling.schedules-delete", "destructive": true, "confirm": "required", "permission": "scheduling.delete" },
+    { "id": "scheduling.booking-url", "destructive": false },
+    { "id": "scheduling.cron-tick", "destructive": false, "permission": "scheduling.write" }
+  ],
+  "credentials": [
     {
-      "id": "example-pod",
-      "name": "Example Workload Pod",
-      "description": "Pod de ejemplo (SPEC §15b): worker NATS con createPodWorker + /healthz. Elimínalo si el feature no necesita computación dedicada.",
-      "build": {
-        "dockerfile": "pods/example-pod/Dockerfile",
-        "context": "pods/example-pod"
-      },
-      "image": "ghcr.io/2mes4-gaudi/gaudi-calendar-scheduling-example-pod",
-      "replicas": 1,
-      "health": {
-        "httpGet": {
-          "path": "/healthz",
-          "port": 8080
+      "id": "calendar.api-key",
+      "type": "api-key",
+      "required": true,
+      "transport": ["env"],
+      "defaultTransport": "env",
+      "envVar": "GAUDI_CALENDAR_API_KEY",
+      "scope": "platform",
+      "description": "API key de Cal.diy (Bearer) per a l'API v2 (/v2/*). Com obtenir-la: obre https://cal.apps.ona.gaudi.2mes4.com → Settings → Developer → API Keys → Create, i desa-la amb `gaudi env set GAUDI_CALENDAR_API_KEY cal_... --scope platform`.",
+      "validate": "node dist/bin.js scheduling me-get --json",
+      "usedBy": ["scheduling.me-get", "scheduling.event-types-list", "scheduling.bookings-create"]
+    },
+    {
+      "id": "calendar.cron-key",
+      "type": "api-key",
+      "required": true,
+      "transport": ["env"],
+      "defaultTransport": "env",
+      "envVar": "GAUDI_CALENDAR_CRON_KEY",
+      "scope": "platform",
+      "description": "CRON_API_KEY de Cal.diy per als jobs interns (/api/cron/*). Com obtenir-la: el mateix valor que la clau CRON_API_KEY generada al Secret calcom-web (kubectl get secret calcom-web-secret -o jsonpath='{.data.CRON_API_KEY}' | base64 -d).",
+      "usedBy": ["scheduling.cron-tick"]
+    }
+  ],
+  "environment": [
+    {
+      "id": "api-base",
+      "envVar": "GAUDI_CALENDAR_API_BASE",
+      "description": "Base de l'API v2 de Cal.diy",
+      "descriptionLong": "URL interna del servei d'API v2 (standalone). Al clúster: http://calcom-api:8080. En local: la URL pública + /api/v2.",
+      "required": true,
+      "secret": false,
+      "scope": "platform",
+      "usedBy": ["scheduling.me-get", "scheduling.event-types-list", "scheduling.slots-list", "scheduling.bookings-list", "scheduling.schedules-list"]
+    },
+    {
+      "id": "web-base",
+      "envVar": "GAUDI_CALENDAR_WEB_BASE",
+      "description": "Base web de Cal.diy",
+      "descriptionLong": "URL interna de l'app web (Next.js). Al clúster: http://calcom-web:3000. S'usa per als jobs interns /api/cron/*.",
+      "required": true,
+      "secret": false,
+      "scope": "platform",
+      "usedBy": ["scheduling.cron-tick"]
+    },
+    {
+      "id": "public-url",
+      "envVar": "GAUDI_CALENDAR_PUBLIC_URL",
+      "description": "URL pública de Cal.diy",
+      "descriptionLong": "URL pública de la interfície (https://cal.apps.ona.gaudi.2mes4.com). S'usa per generar enllaços de reserva i com a NEXT_PUBLIC_WEBAPP_URL del stack.",
+      "required": true,
+      "secret": false,
+      "scope": "platform",
+      "usedBy": ["scheduling.booking-url"]
+    },
+    {
+      "id": "default-username",
+      "envVar": "GAUDI_CALENDAR_DEFAULT_USERNAME",
+      "description": "Username per defecte als enllaços de reserva",
+      "descriptionLong": "Username de l'usuari de Cal.diy que es fa servir a scheduling.booking-url quan no s'especifica. Ex: eric",
+      "required": false,
+      "secret": false,
+      "scope": "platform",
+      "usedBy": ["scheduling.booking-url"]
+    },
+    {
+      "id": "default-timezone",
+      "envVar": "GAUDI_CALENDAR_DEFAULT_TIMEZONE",
+      "description": "Timezone per defecte",
+      "descriptionLong": "Timezone IANA per defecte als enllaços i consultes de slots. Ex: Europe/Madrid",
+      "required": false,
+      "secret": false,
+      "scope": "platform",
+      "usedBy": ["scheduling.booking-url", "scheduling.slots-list"]
+    }
+  ],
+  "platform_services": [
+    {
+      "id": "calcom-db",
+      "kind": "postgres",
+      "description": "PostgreSQL dedicat de Cal.diy (esquema i migracions Prisma del producte)",
+      "postgres": {
+        "storage": "2Gi",
+        "resources": {
+          "requests": { "cpu": "100m", "memory": "256Mi" },
+          "limits": { "memory": "512Mi" }
+        }
+      }
+    },
+    {
+      "id": "calcom-cache",
+      "kind": "cache",
+      "description": "Redis de Cal.diy (rate limiting, caché i cues Bull)",
+      "cache": {
+        "maxmemory": "128mb",
+        "persistence": true,
+        "storage": "512Mi",
+        "resources": {
+          "requests": { "cpu": "50m", "memory": "64Mi" },
+          "limits": { "memory": "192Mi" }
+        }
+      }
+    },
+    {
+      "id": "calcom-web",
+      "kind": "api",
+      "description": "App web de Cal.diy (Next.js :3000) amb ingress TLS a cal.apps.ona.gaudi.2mes4.com. Bootstrap: migracions Prisma.",
+      "api": {
+        "name": "calcom-web",
+        "image": "ghcr.io/2mes4-gaudi/caldiy-web:v6.2.0",
+        "port": 3000,
+        "env": [
+          "NODE_ENV=production",
+          "PORT=3000",
+          "NEXT_PUBLIC_WEBAPP_URL=@ref:GAUDI_CALENDAR_PUBLIC_URL",
+          "NEXT_PUBLIC_WEBSITE_URL=@ref:GAUDI_CALENDAR_PUBLIC_URL",
+          "NEXTAUTH_URL=@ref:GAUDI_CALENDAR_PUBLIC_URL",
+          "NEXTAUTH_SECRET=@secret:NEXTAUTH_SECRET",
+          "CALENDSO_ENCRYPTION_KEY=@secret:CALENDSO_ENCRYPTION_KEY",
+          "CRON_API_KEY=@secret:CRON_API_KEY",
+          "DATABASE_URL=@postgres:calcom-db",
+          "DATABASE_DIRECT_URL=@postgres:calcom-db",
+          "REDIS_URL=@cache:calcom-cache",
+          "CALCOM_TELEMETRY_DISABLED=1",
+          "TZ=UTC"
+        ],
+        "secrets": ["NEXTAUTH_SECRET", "CALENDSO_ENCRYPTION_KEY", "CRON_API_KEY"],
+        "ingress": {
+          "host": "cal.apps.ona.gaudi.2mes4.com",
+          "path": "/",
+          "tls": true,
+          "clusterIssuer": "letsencrypt-prod"
         },
-        "initialDelaySeconds": 10,
-        "periodSeconds": 15
-      },
-      "messaging": {
-        "input": {
-          "queue": "gaudi.calendar.scheduling.tasks",
-          "group": "tasks-executors"
+        "resources": {
+          "requests": { "cpu": "250m", "memory": "1Gi" },
+          "limits": { "memory": "2Gi" }
         },
-        "output": {
-          "topic": "gaudi.calendar.scheduling.results"
+        "health": {
+          "httpGet": { "path": "/", "port": 3000 },
+          "initialDelaySeconds": 30,
+          "periodSeconds": 20,
+          "timeoutSeconds": 10
+        },
+        "bootstrap": {
+          "command": ["npx", "prisma", "migrate", "deploy"],
+          "timeoutSeconds": 900
+        }
+      }
+    },
+    {
+      "id": "calcom-api",
+      "kind": "api",
+      "description": "API v2 standalone de Cal.diy (apps/api/v2) al clúster, consumida pel CLI i els agents (ClusterIP)",
+      "api": {
+        "name": "calcom-api",
+        "image": "ghcr.io/2mes4-gaudi/caldiy-api-v2:v6.2.0",
+        "port": 8080,
+        "env": [
+          "NODE_ENV=production",
+          "API_PORT=8080",
+          "API_URL=http://calcom-api:8080",
+          "WEB_APP_URL=@ref:GAUDI_CALENDAR_PUBLIC_URL",
+          "DATABASE_URL=@postgres:calcom-db",
+          "DATABASE_DIRECT_URL=@postgres:calcom-db",
+          "DATABASE_READ_URL=@postgres:calcom-db",
+          "DATABASE_WRITE_URL=@postgres:calcom-db",
+          "REDIS_URL=@cache:calcom-cache",
+          "NEXTAUTH_SECRET=@secret:NEXTAUTH_SECRET",
+          "JWT_SECRET=@secret:NEXTAUTH_SECRET",
+          "REWRITE_API_V2_PREFIX=true"
+        ],
+        "resources": {
+          "requests": { "cpu": "100m", "memory": "256Mi" },
+          "limits": { "memory": "768Mi" }
+        },
+        "health": {
+          "httpGet": { "path": "/health", "port": 8080 },
+          "initialDelaySeconds": 20,
+          "periodSeconds": 20,
+          "timeoutSeconds": 10
         }
       }
     }
   ],
-  "actions": [
-    {
-      "id": "scheduling.health",
-      "destructive": false
-    },
-    {
-      "id": "scheduling.hello",
-      "destructive": false
-    },
-    {
-      "id": "scheduling.greetings.list",
-      "destructive": false
-    },
-    {
-      "id": "scheduling.greetings.search",
-      "destructive": false
-    }
-  ],
-  "credentials": [],
-  "environment": [
-    {
-      "id": "example-token",
-      "envVar": "GAUDI_SCHEDULING_EXAMPLE_TOKEN",
-      "description": "Token de ejemplo (opcional) para integraciones externas",
-      "descriptionLong": "Token que el feature usa si necesita llamar a una API externa. Déjalo vacío si no usas integraciones. Se guarda en public.environment_variables y se inyecta via K8s Secret.",
-      "required": false,
-      "secret": true,
-      "scope": "feature",
-      "usedBy": ["scheduling.hello"]
-    }
-  ],
-  "data": {
-    "postgres": {
-      "migrations": "db/migrations/",
-      "tables": [
-        {
-          "name": "greetings",
-          "model": "Greeting"
-        }
-      ]
-    }
-  },
-  "ui": {
-    "app": {
-      "id": "scheduling",
-      "name": "Calendar Scheduling",
-      "icon": "activity",
-      "emoji": "🧩",
-      "url": "/scheduling/",
-      "order": 10
-    },
-    "views": []
-  },
   "skills": [
     {
       "id": "scheduling",
       "source": "own",
       "name": "Calendar Scheduling",
-      "description": "Skill de dominio del feature calendar.scheduling: Gestió de calendari i reserves sobre Cal.diy (Cal.com): event types, disponibilitat, bookings, URLs de reserva i operació via CLI per agents. Integració de producte open source (SPEC 15c).. Actívalo cuando el usuario pida saludar, listar saludos o consultar salud del feature.",
+      "description": "Skill per operar el calendari i les reserves (Cal.diy): consultar disponibilitat i reserves, crear/reprogramar/cancel·lar cites, gestionar event types i schedules, i generar URLs de reserva amb opcions. Usa el CLI `scheduling` (--json).",
       "version": "0.1.0"
     }
   ],
-  "agents": [
-    {
-      "id": "scheduling-agent",
-      "name": "Calendar Scheduling Agent",
-      "description": "Agente que opera el feature calendar.scheduling: Gestió de calendari i reserves sobre Cal.diy (Cal.com): event types, disponibilitat, bookings, URLs de reserva i operació via CLI per agents. Integració de producte open source (SPEC 15c).. Ejecuta scheduling.* con confirmación y publica en gaudi.<agent>.notifications.",
-      "source": "own",
-      "tools": ["auto"],
-      "instructions": "ai-assets/agents/scheduling-agent.md",
-      "skills": ["scheduling"]
-    }
-  ],
-  "hooks": [],
   "lifecycle": {
     "install": "scripts/install.sh",
     "uninstall": "scripts/uninstall.sh",

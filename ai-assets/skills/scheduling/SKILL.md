@@ -1,0 +1,99 @@
+---
+name: scheduling
+description: Operar el calendari i les reserves de Cal.diy (Cal.com): consultar disponibilitat i reserves, crear/reprogramar/cancel·lar/confirmar cites, gestionar event types i horaris (schedules), generar enllaços de reserva amb opcions i consultar enllaços/gravacions. Usa el CLI `scheduling` amb --json.
+---
+
+# Calendar Scheduling (Cal.diy)
+
+Ets l'operador del calendari de la plataforma. Tot passa pel CLI `scheduling`
+(construït des del registry d'accions) amb `--json` per a respostes màquino-llegibles.
+
+## Regla d'or
+
+1. **Mira abans d'actuar**: `me-get` (qui ets), `event-types-list` (què es pot reservar),
+   `schedules-list` (quan estàs disponible), `slots-list` (forats lliures reals).
+2. **Reserves**: abans de crear/programar, comprova disponibilitat amb `slots-list`
+   i passa sempre l'hora en **UTC ISO** (`2026-10-20T09:00:00.000Z`).
+3. **Destructives** (cancel·lar, decline, eliminar event type/horari): demana
+   confirmació humana i executa amb `--yes` només després d'obtenir-la.
+4. **Enllaços**: per convidar algú a reservar, genera l'enllaç amb `booking-url`
+   (mai inventis URLs).
+
+## Comandes (resum)
+
+```bash
+# Identitat i catàleg
+node dist/bin.js scheduling me-get --json
+node dist/bin.js scheduling event-types-list --json
+node dist/bin.js scheduling event-types-list eric --json          # només públics d'un perfil
+
+# Disponibilitat
+node dist/bin.js scheduling slots-list <eventTypeId> 2026-10-12 2026-10-19 --json
+node dist/bin.js scheduling schedules-list --json
+node dist/bin.js scheduling schedules-default --json
+
+# Reserves
+node dist/bin.js scheduling bookings-list upcoming --json
+node dist/bin.js scheduling bookings-list "" "" anna@example.com --json
+node dist/bin.js scheduling bookings-get <bookingUid> --json
+node dist/bin.js scheduling bookings-create <eventTypeId> "" "" "" "" 2026-10-20T09:00:00.000Z "Anna" anna@example.com Europe/Madrid --json
+node dist/bin.js scheduling bookings-reschedule <bookingUid> 2026-10-21T09:00:00.000Z "motiu" --json
+node dist/bin.js scheduling bookings-cancel <bookingUid> --yes --json
+node dist/bin.js scheduling bookings-confirm <bookingUid> --json
+node dist/bin.js scheduling bookings-decline <bookingUid> --yes "motiu" --json
+
+# Enllaços i material de la reserva
+node dist/bin.js scheduling booking-url consultoria eric "" "" "" 2026-11 2026-11-03 --json
+node dist/bin.js scheduling bookings-calendar-links <bookingUid> --json
+node dist/bin.js scheduling bookings-references <bookingUid> --json
+
+# Event types (gestionar el que es pot reservar)
+node dist/bin.js scheduling event-types-create "Consultoria" consultoria 30 --json
+node dist/bin.js scheduling event-types-update <eventTypeId> "" "" 45 --json
+node dist/bin.js scheduling event-types-delete <eventTypeId> --yes --json
+
+# Horaris
+node dist/bin.js scheduling schedules-create "Feina" Europe/Madrid true --json
+node dist/bin.js scheduling schedules-update <scheduleId> --json
+
+# Salut
+node dist/bin.js scheduling health --json
+```
+
+**Arguments posicionals = ordre dels camps de l'acció**; un `""` salta un
+opcional. Els arrays s'escriuen separats per comes (`a@x.com,b@y.com`) o com a
+JSON (`'["a@x.com"]'`). Els objectes (metadata, locations...) en JSON.
+
+## Enllaços de reserva (`booking-url`)
+
+Genera l'enllaç públic amb TOTES les opcions:
+
+```bash
+# Bàsic (username per defecte de la plataforma)
+node dist/bin.js scheduling booking-url consultoria --json
+
+# Prefill complet: mes/dia/slot + timezone + assistent + convidats + notes
+node dist/bin.js scheduling booking-url consultoria eric "" "" "" \
+  2026-11 2026-11-03 2026-11-03T09:00:00.000Z Europe/Madrid 45 \
+  "Anna" anna@example.com "marc@example.com" "Primera reunió" month_view --json
+
+# Equip (/team/<slug>/<event>) i organització (org/user i org/team)
+node dist/bin.js scheduling booking-url demo "" suport --json
+node dist/bin.js scheduling booking-url demo eric "" acme --json
+```
+
+## Daemons
+
+Els daemons `calcom-cron` (cada 5 min) i `calcom-maintenance` (horari) executen
+els jobs interns del producte via `scheduling cron-tick`. NO els cridis manualment
+tret de diagnòstic:
+
+```bash
+node dist/bin.js scheduling cron-tick bookingReminder --json
+```
+
+## Errors
+
+- `CONFIRM_REQUIRED` → falta `--yes` (acció destructiva).
+- `Cal.diy GET/POST ...: missatge` → error de l'API (revisa credencials/ids).
+- `No s'ha pogut contactar amb Cal.diy` → servei caigut; comprova `scheduling health --json`.

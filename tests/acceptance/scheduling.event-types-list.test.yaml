@@ -1,0 +1,15 @@
+id: scheduling.event-types-list
+description: "L'usuari pregunta quins tipus de cita té i el sistema llista els event types"
+prompt: "Quins tipus de cita tinc?"
+action: >-
+  GAUDI_CALENDAR_API_BASE=http://127.0.0.1:4599
+  GAUDI_CALENDAR_API_KEY=cal_test
+  node dist/bin.js scheduling event-types-list --json
+setup:
+  - "node tests/mock-calcom.mjs & sleep 0.5"
+expected:
+  exit: 0
+  stdout:
+    contains:
+      - '"slug": "consultoria"'
+      - '"lengthInMinutes": 30'

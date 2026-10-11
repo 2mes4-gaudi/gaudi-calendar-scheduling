@@ -1,7 +1,7 @@
 {
   "name": "@gaudi/calendar.scheduling",
   "version": "0.1.0",
-  "description": "Gestió de calendari i reserves sobre Cal.diy (Cal.com): event types, disponibilitat, bookings, URLs de reserva i operació via CLI per agents. Integració de producte open source (SPEC 15c).",
+  "description": "Gestió de calendari i reserves sobre Cal.diy (Cal.com): event types, disponibilitat, bookings, programes i URLs de reserva. Integració de producte open source (SPEC §15c) amb CLI agent-friendly.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -9,24 +9,19 @@
     "scheduling": "dist/bin.js"
   },
   "scripts": {
-    "build": "tsc && bash scripts/build.sh",
+    "build": "tsc",
     "test": "node --test",
     "start": "node dist/bin.js"
   },
   "dependencies": {
-    "@gaudi/core": "git+https://github.com/2mes4-gaudi/gaudi-core.git#v1.9.0",
-    "@hono/node-server": "^1.13.7",
-    "drizzle-orm": "^0.33.0",
-    "hono": "^4.6.14",
-    "pg": "^8.12.0",
+    "@gaudi/core": "git+https://github.com/2mes4-gaudi/gaudi-core.git#v1.9.3",
+    "commander": "^12.0.0",
     "yaml": "^2.6.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "@types/pg": "^8.11.0",
-    "drizzle-kit": "^0.24.0",
     "typescript": "^5.5.0"
   },
-  "license": "UNLICENSED"
+  "license": "MIT"
 }

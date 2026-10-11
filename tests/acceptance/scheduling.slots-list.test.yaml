@@ -1,0 +1,15 @@
+id: scheduling.slots-list
+description: "L'usuari vol saber disponibilitat d'un event type en un rang de dies"
+prompt: "Quines hores lliures tens la setmana del 12 d'octubre?"
+action: >-
+  GAUDI_CALENDAR_API_BASE=http://127.0.0.1:4599
+  GAUDI_CALENDAR_API_KEY=cal_test
+  GAUDI_CALENDAR_DEFAULT_TIMEZONE=Europe/Madrid
+  node dist/bin.js scheduling slots-list 11 2026-10-12 2026-10-19 --json
+setup:
+  - "node tests/mock-calcom.mjs & sleep 0.5"
+expected:
+  exit: 0
+  stdout:
+    contains:
+      - '"2026-10-12T09:00:00.000Z"'

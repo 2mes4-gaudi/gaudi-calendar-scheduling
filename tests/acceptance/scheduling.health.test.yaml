@@ -1,0 +1,19 @@
+id: scheduling.health
+description: "Health del feature amb API v2 i web mockejats: credencials i serveis vius"
+prompt: "Com està el calendari?"
+action: >-
+  GAUDI_CALENDAR_API_BASE=http://127.0.0.1:4599
+  GAUDI_CALENDAR_WEB_BASE=http://127.0.0.1:4599
+  GAUDI_CALENDAR_API_KEY=cal_test
+  GAUDI_CALENDAR_CRON_KEY=cron_test_key
+  GAUDI_CALENDAR_PUBLIC_URL=https://cal.apps.ona.gaudi.2mes4.com
+  node dist/bin.js scheduling health --json
+setup:
+  - "node tests/mock-calcom.mjs & sleep 0.5"
+expected:
+  exit: 0
+  stdout:
+    contains:
+      - '"ok": true'
+      - '"name": "calcom-api"'
+      - '"name": "calcom-web"'
