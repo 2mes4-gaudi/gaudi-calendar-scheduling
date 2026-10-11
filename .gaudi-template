@@ -1,0 +1,7 @@
+# Metadatos del template — sustituidos por `gaudi feature create`
+feature_id: devops.cost-management       # {dominio}.{feature} — id completo
+feature_short: cost-management           # sufijo tras el punto (no el dominio) — usado como prefijo de acción y slug
+feature_name: Cost Management
+feature_description: Monitoriza y optimiza costes (postgres + NATS)
+author: Eric
+repository_url: https://github.com/2mes4-gaudi/gaudi-devops-cost-management

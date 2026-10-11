@@ -1,0 +1,14 @@
+# Cas d'acceptació d'exemple (format del sandbox @gaudi).
+# Substituïu prompt/action/expected per casos reals del feature i confirmeu-los
+# amb l'usuari abans d'executar el sandbox.
+id: scheduling.hello-basic
+description: "L'usuari saluda i el sistema respon"
+prompt: "Saluda'm"
+action: >-
+  node dist/bin.js scheduling.hello "mon" --json
+setup: []
+expected:
+  exit: 0
+  stdout:
+    contains:
+      - '"message"'

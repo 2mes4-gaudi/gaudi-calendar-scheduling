@@ -1,0 +1,167 @@
+{
+  "manifest": "1.2",
+  "id": "calendar.scheduling",
+  "name": "Calendar Scheduling",
+  "version": "0.1.0",
+  "description": "Gestió de calendari i reserves sobre Cal.diy (Cal.com): event types, disponibilitat, bookings, URLs de reserva i operació via CLI per agents. Integració de producte open source (SPEC 15c).",
+  "author": "2mes4-gaudi",
+  "repository": {
+    "type": "github",
+    "url": "https://github.com/2mes4-gaudi/gaudi-calendar-scheduling",
+    "main": "main"
+  },
+  "architecture": {
+    "cli": true,
+    "api": true,
+    "apiStack": "hono",
+    "agent": ["mastra"],
+    "database": ["postgres"],
+    "ui": true
+  },
+  "security": {
+    "api": {
+      "auth": "none"
+    }
+  },
+  "dependencies": {
+    "features": [],
+    "packages": ["@gaudi/core@^1.9", "hono@^4.6", "zod@^3.23", "drizzle-orm@^0.33", "pg@^8.12"],
+    "mcp": []
+  },
+  "messaging": {
+    "queue": "gaudi.ona.notifications",
+    "topics": [
+      {
+        "name": "gaudi.ona.notifications",
+        "mode": "publish"
+      }
+    ]
+  },
+  "llull": {
+    "indexes": [
+      {
+        "name": "gaudi-calendar-scheduling",
+        "description": "Saludos guardados del feature (campos: title=mensaje, content)."
+      }
+    ]
+  },
+  "daemons": [
+    {
+      "id": "example-watcher",
+      "description": "Ejemplo cron — publica un tick de salud por el bus del agente (SPEC §14b)",
+      "command": "node dist/daemons/example-watcher.js",
+      "schedule": "0-59/15 * * * *",
+      "enabled": false,
+      "restart": "on-failure"
+    }
+  ],
+  "pods": [
+    {
+      "id": "example-pod",
+      "name": "Example Workload Pod",
+      "description": "Pod de ejemplo (SPEC §15b): worker NATS con createPodWorker + /healthz. Elimínalo si el feature no necesita computación dedicada.",
+      "build": {
+        "dockerfile": "pods/example-pod/Dockerfile",
+        "context": "pods/example-pod"
+      },
+      "image": "ghcr.io/2mes4-gaudi/gaudi-calendar-scheduling-example-pod",
+      "replicas": 1,
+      "health": {
+        "httpGet": {
+          "path": "/healthz",
+          "port": 8080
+        },
+        "initialDelaySeconds": 10,
+        "periodSeconds": 15
+      },
+      "messaging": {
+        "input": {
+          "queue": "gaudi.calendar.scheduling.tasks",
+          "group": "tasks-executors"
+        },
+        "output": {
+          "topic": "gaudi.calendar.scheduling.results"
+        }
+      }
+    }
+  ],
+  "actions": [
+    {
+      "id": "scheduling.health",
+      "destructive": false
+    },
+    {
+      "id": "scheduling.hello",
+      "destructive": false
+    },
+    {
+      "id": "scheduling.greetings.list",
+      "destructive": false
+    },
+    {
+      "id": "scheduling.greetings.search",
+      "destructive": false
+    }
+  ],
+  "credentials": [],
+  "environment": [
+    {
+      "id": "example-token",
+      "envVar": "GAUDI_SCHEDULING_EXAMPLE_TOKEN",
+      "description": "Token de ejemplo (opcional) para integraciones externas",
+      "descriptionLong": "Token que el feature usa si necesita llamar a una API externa. Déjalo vacío si no usas integraciones. Se guarda en public.environment_variables y se inyecta via K8s Secret.",
+      "required": false,
+      "secret": true,
+      "scope": "feature",
+      "usedBy": ["scheduling.hello"]
+    }
+  ],
+  "data": {
+    "postgres": {
+      "migrations": "db/migrations/",
+      "tables": [
+        {
+          "name": "greetings",
+          "model": "Greeting"
+        }
+      ]
+    }
+  },
+  "ui": {
+    "app": {
+      "id": "scheduling",
+      "name": "Calendar Scheduling",
+      "icon": "activity",
+      "emoji": "🧩",
+      "url": "/scheduling/",
+      "order": 10
+    },
+    "views": []
+  },
+  "skills": [
+    {
+      "id": "scheduling",
+      "source": "own",
+      "name": "Calendar Scheduling",
+      "description": "Skill de dominio del feature calendar.scheduling: Gestió de calendari i reserves sobre Cal.diy (Cal.com): event types, disponibilitat, bookings, URLs de reserva i operació via CLI per agents. Integració de producte open source (SPEC 15c).. Actívalo cuando el usuario pida saludar, listar saludos o consultar salud del feature.",
+      "version": "0.1.0"
+    }
+  ],
+  "agents": [
+    {
+      "id": "scheduling-agent",
+      "name": "Calendar Scheduling Agent",
+      "description": "Agente que opera el feature calendar.scheduling: Gestió de calendari i reserves sobre Cal.diy (Cal.com): event types, disponibilitat, bookings, URLs de reserva i operació via CLI per agents. Integració de producte open source (SPEC 15c).. Ejecuta scheduling.* con confirmación y publica en gaudi.<agent>.notifications.",
+      "source": "own",
+      "tools": ["auto"],
+      "instructions": "ai-assets/agents/scheduling-agent.md",
+      "skills": ["scheduling"]
+    }
+  ],
+  "hooks": [],
+  "lifecycle": {
+    "install": "scripts/install.sh",
+    "uninstall": "scripts/uninstall.sh",
+    "verify": "scripts/verify.sh"
+  }
+}

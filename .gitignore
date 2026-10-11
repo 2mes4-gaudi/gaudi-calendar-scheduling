@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+.env
+
+# Estado de instalación local del feature (se escribe en el workspace del runtime,
+# nunca se publica). Ver SPEC §10b.
+.feature-gaudi-status

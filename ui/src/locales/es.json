@@ -1,0 +1,19 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "executing": "Ejecutando...",
+    "executed": "✓ {{id}} ejecutado",
+    "result": "Resultado",
+    "empty": "Sin saludos aún.",
+    "searchPlaceholder": "Buscar saludos...",
+    "schemaDriven": "Ejemplo de UI schema-driven"
+  },
+  "header": {
+    "title": "Saludos"
+  },
+  "actions": {
+    "hello": "Decir hola",
+    "list": "Listar saludos",
+    "search": "Buscar"
+  }
+}

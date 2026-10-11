@@ -1,0 +1,13 @@
+{
+  "$schema": "https://opencode.ai/schema.json",
+  "mcpServers": {
+    "scheduling": {
+      "command": ["node", "dist/bin.js", "mcp", "--stdio"],
+      "enabled": false,
+      "description": "MCP del feature calendar.scheduling — descomentar para activar local"
+    }
+  },
+  "skills": {
+    "external_dirs": ["ai-assets/skills"]
+  }
+}
