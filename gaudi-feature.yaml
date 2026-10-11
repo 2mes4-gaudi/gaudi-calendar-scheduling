@@ -2,7 +2,7 @@
   "manifest": "1.3",
   "id": "calendar.scheduling",
   "name": "Calendar Scheduling",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Gestió de calendari i reserves sobre Cal.diy (Cal.com): event types, disponibilitat (slots), schedules, bookings (crear/get/cancel·lar/reprogramar/confirmar), enllaços de calendari i generació d'URLs de reserva amb opcions. Integració de producte open source (SPEC §15c): stack Cal.diy declarat a platform_services[] i jobs interns via daemons[].",
   "author": "2mes4-gaudi",
   "repository": {
@@ -266,7 +266,11 @@
           "REDIS_URL=@cache:calcom-cache",
           "NEXTAUTH_SECRET=@secret:NEXTAUTH_SECRET",
           "JWT_SECRET=@secret:NEXTAUTH_SECRET",
-          "REWRITE_API_V2_PREFIX=true"
+          "REWRITE_API_V2_PREFIX=true",
+          "IS_TEAM_BILLING_ENABLED=false",
+          "STRIPE_API_KEY=sk_test_placeholder",
+          "STRIPE_WEBHOOK_SECRET=whsec_placeholder"
+
         ],
         "resources": {
           "requests": { "cpu": "100m", "memory": "256Mi" },

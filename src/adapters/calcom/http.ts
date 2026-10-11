@@ -87,12 +87,15 @@ export function createCalcomClient(opts: CalcomClientOptions): CalcomApi {
     del: (path, version) => request("DELETE", path, { version }),
     async cron(job: string): Promise<CronResult> {
       const url = `${webBase}/api/cron/${job}`;
+      const headers: Record<string, string> = {};
+      if (opts.cronKey) headers.authorization = opts.cronKey;
       try {
-        const res = await doFetch(url, {
-          method: "POST",
-          headers: opts.cronKey ? { authorization: opts.cronKey } : {},
-          signal: AbortSignal.timeout(120_000),
-        });
+        // La majoria de jobs de Cal.diy són POST, però alguns (calendar-subscriptions,
+        // changeTimeZone...) accepten GET. Fallback automàtic amb 405.
+        let res = await doFetch(url, { method: "POST", headers, signal: AbortSignal.timeout(120_000) });
+        if (res.status === 405) {
+          res = await doFetch(url, { method: "GET", headers, signal: AbortSignal.timeout(120_000) });
+        }
         const text = await res.text();
         let parsed: unknown = {};
         if (text) {

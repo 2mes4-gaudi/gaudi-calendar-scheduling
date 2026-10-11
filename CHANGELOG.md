@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.3 — 2026-10-11
+
+- Client cron: fallback POST→GET amb HTTP 405 (calendar-subscriptions,
+  changeTimeZone i companyia són GET a Cal.diy).
+- Stack calcom-api: STRIPE_API_KEY/STRIPE_WEBHOOK_SECRET placeholder i
+  IS_TEAM_BILLING_ENABLED=false — la config de l'API v2 els exigeix per arrencar.
+
 ## 0.1.2 — 2026-10-11
 
 - Fix: els daemons passaven `--jobs` al CLI, però `cron-tick` usa argument
