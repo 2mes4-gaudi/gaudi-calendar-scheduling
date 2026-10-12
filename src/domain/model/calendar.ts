@@ -386,6 +386,9 @@ export const calendarsStatusOutput = z.object({
   calendarCredentials: z.array(
     z.object({ id: z.number(), type: z.string(), appId: z.string().nullish(), createdAt: z.string().nullish() })
   ),
+  selectedCalendars: z.array(
+    z.object({ integration: z.string(), externalId: z.string(), credentialId: z.number().nullish() })
+  ),
   destinationCalendar: z.unknown().nullish(),
   settings: z.object({ device: z.string(), defaultMinutes: z.number() }),
 });
@@ -409,6 +412,9 @@ export const calendarsListOutput = z.object({
   user: z.object({ id: z.number(), username: z.string(), email: z.string() }),
   calendarCredentials: z.array(
     z.object({ id: z.number(), type: z.string(), appId: z.string().nullish(), createdAt: z.string().nullish() })
+  ),
+  selectedCalendars: z.array(
+    z.object({ integration: z.string(), externalId: z.string(), credentialId: z.number().nullish() })
   ),
   destinationCalendar: z.unknown().nullish(),
 });

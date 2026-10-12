@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1 — 2026-10-12
+
+- `calendars-list`/`calendars-status`: inclouen els calendaris seleccionats per a
+  conflictes (SelectedCalendar) — permet automatitzar el calendari de referència
+  just després de connectar Google.
+
 ## 0.4.0 — 2026-10-12
 
 - **Sala de videotrucada SEMPRE a cada reserva**: `bookings-create` afegeix la

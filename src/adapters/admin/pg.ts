@@ -107,6 +107,14 @@ export async function createCalendarAdminStore(connectionString: string): Promis
       return rows[0];
     },
 
+    async listSelectedCalendars(userId) {
+      const { rows } = await pool.query<{ integration: string; externalId: string; credentialId: number | null }>(
+        `SELECT integration, "externalId", "credentialId" FROM "SelectedCalendar" WHERE "userId" = $1 ORDER BY integration, "externalId"`,
+        [userId]
+      );
+      return rows;
+    },
+
     async findUserByEmail(email) {
       const { rows } = await pool.query<{ id: number; username: string | null; email: string; defaultScheduleId: number | null }>(
         `SELECT id, username, email, "defaultScheduleId" FROM users WHERE lower(email) = lower($1) LIMIT 1`,

@@ -65,6 +65,10 @@ export interface CalendarAdminStore {
   listCalendarCredentials(userId: number): Promise<CalendarCredentialRow[]>;
   /** Calendari de destinació de l'usuari (si en té). */
   getDestinationCalendar(userId: number): Promise<DestinationCalendarRow | undefined>;
+  /** Calendaris seleccionats per a comprovació de conflictes (SelectedCalendar). */
+  listSelectedCalendars(
+    userId: number
+  ): Promise<Array<{ integration: string; externalId: string; credentialId: number | null }>>;
   findUserByEmail(email: string): Promise<CalendarUserRow | undefined>;
   findUserByUsername(username: string): Promise<CalendarUserRow | undefined>;
   isUsernameTaken(username: string): Promise<boolean>;

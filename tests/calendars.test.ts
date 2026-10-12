@@ -9,7 +9,7 @@ import {
   GOOGLE_SCOPES,
 } from "../dist/domain/services/calendars-service.js";
 
-function makeCtx(opts: { app?: { slug: string; enabled: boolean; keys: Record<string, unknown> | null } | undefined; credentials?: unknown[]; destination?: unknown } = {}) {
+function makeCtx(opts: { app?: { slug: string; enabled: boolean; keys: Record<string, unknown> | null } | undefined; credentials?: unknown[]; destination?: unknown; selected?: unknown[] } = {}) {
   const calls: Array<{ method: string; path: string; body?: unknown }> = [];
   const setAppCalls: Array<{ slug: string; keys: Record<string, unknown>; enabled?: boolean }> = [];
   const admin = {
@@ -23,6 +23,9 @@ function makeCtx(opts: { app?: { slug: string; enabled: boolean; keys: Record<st
       },
       async listCalendarCredentials() {
         return opts.credentials ?? [];
+      },
+      async listSelectedCalendars() {
+        return opts.selected ?? [];
       },
       async getDestinationCalendar() {
         return opts.destination;
@@ -127,6 +130,7 @@ test("calendars-list i destination-set: llisten credencials i fixen destinació 
   const list = await calendarsList({}, ctx as never);
   assert.equal(list.user.username, "ericmora");
   assert.equal(list.calendarCredentials.length, 1);
+  assert.deepEqual(list.selectedCalendars, []);
   assert.equal((list.destinationCalendar as { externalId: string }).externalId, "prim@group.calendar.google.com");
 
   const set = await destinationCalendarSet({ integration: "google_calendar", externalId: "ona@group.calendar.google.com" }, ctx as never);

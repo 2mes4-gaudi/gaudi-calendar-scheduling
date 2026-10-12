@@ -53,6 +53,7 @@ export async function calendarsStatus(_input: unknown, ctx: SchedulingContext) {
   const app = await store.getApp(GOOGLE_APP_SLUG);
   let user: { id: number; username: string; email: string } | undefined;
   let credentials: Array<{ id: number; type: string; appId: string | null; createdAt: Date | null }> = [];
+  let selected: Array<{ integration: string; externalId: string; credentialId: number | null }> = [];
   let destination: unknown = null;
   try {
     const me = unwrapData(await ctx.calcom.get("/v2/me", {}, API_VERSIONS.me)) as {
@@ -63,6 +64,7 @@ export async function calendarsStatus(_input: unknown, ctx: SchedulingContext) {
     if (me?.id) {
       user = { id: me.id, username: me.username ?? "", email: me.email ?? "" };
       credentials = await store.listCalendarCredentials(me.id);
+      selected = await store.listSelectedCalendars(me.id);
       destination = (await store.getDestinationCalendar(me.id)) ?? null;
     }
   } catch {
@@ -81,6 +83,7 @@ export async function calendarsStatus(_input: unknown, ctx: SchedulingContext) {
       appId: c.appId,
       createdAt: c.createdAt ? new Date(c.createdAt).toISOString() : null,
     })),
+    selectedCalendars: selected,
     destinationCalendar: destination,
     settings: { device: await getDevice(ctx), defaultMinutes: await getDefaultMinutes(ctx) },
   };
@@ -138,6 +141,7 @@ export async function calendarsList(_input: unknown, ctx: SchedulingContext) {
     email?: string;
   };
   const credentials = await store.listCalendarCredentials(me.id);
+  const selected = await store.listSelectedCalendars(me.id);
   const destination = await store.getDestinationCalendar(me.id);
   return {
     user: { id: me.id, username: me.username ?? "", email: me.email ?? "" },
@@ -147,6 +151,7 @@ export async function calendarsList(_input: unknown, ctx: SchedulingContext) {
       appId: c.appId,
       createdAt: c.createdAt ? new Date(c.createdAt).toISOString() : null,
     })),
+    selectedCalendars: selected,
     destinationCalendar: destination ?? null,
   };
 }
