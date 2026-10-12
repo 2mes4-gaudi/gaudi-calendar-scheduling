@@ -3,6 +3,7 @@ import type { CalendarAdminStore, PlatformUsersReader } from "../../ports/admin.
 import type { SchedulingContext } from "../../ports/context.js";
 import type {
   adminBootstrapInput,
+  adminDeploymentInput,
   apiKeysCreateInput,
   apiKeysListInput,
   apiKeysRevokeInput,
@@ -40,6 +41,22 @@ async function findUserByEmailOrThrow(calcomDb: CalendarAdminStore, email: strin
   const user = await calcomDb.findUserByEmail(email);
   if (!user) throw new Error(`No hi ha cap usuari a Cal.diy amb email ${email}. Executa abans: scheduling admin-bootstrap ${email}`);
   return user;
+}
+
+/** Llicència self-host documentada per Cal.diy (apps/api/v2/README.md). */
+export const SELFHOST_LICENSE_KEY = "00000000-0000-0000-0000-000000000000";
+
+/**
+ * Assegura la fila `Deployment` amb la llicència self-host de Cal.diy.
+ * Sense aquesta fila (i la env CALCOM_LICENSE_KEY a l'API), l'API v2 rebutja
+ * les API keys amb "Invalid or missing CALCOM_LICENSE_KEY" — el «paywall» que
+ * la UI presenta com a funció comercial. És el procediment oficial self-host.
+ */
+export async function adminDeployment(input: z.infer<typeof adminDeploymentInput>, ctx: SchedulingContext) {
+  const { calcomDb } = adminOf(ctx);
+  const licenseKey = input.licenseKey ?? SELFHOST_LICENSE_KEY;
+  const res = await calcomDb.ensureDeploymentLicense(licenseKey);
+  return { id: res.id, licenseKey: res.licenseKey, selfHost: res.licenseKey === SELFHOST_LICENSE_KEY };
 }
 
 /**

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { adminBootstrap, apiKeysCreate, apiKeysList, apiKeysRevoke, deriveUsername } from "../dist/domain/services/admin-service.js";
+import { adminBootstrap, adminDeployment, apiKeysCreate, apiKeysList, apiKeysRevoke, deriveUsername } from "../dist/domain/services/admin-service.js";
 import { generateApiKey, sha256Hex } from "../dist/adapters/admin/pg.js";
 
 function makeCalcomDb(seed: {
@@ -14,6 +14,11 @@ function makeCalcomDb(seed: {
     users,
     schedules,
     keys,
+    deployment: null as null | { id: number; licenseKey: string },
+    async ensureDeploymentLicense(licenseKey: string) {
+      db.deployment = { id: 1, licenseKey };
+      return db.deployment;
+    },
     async findUserByEmail(email: string) {
       const u = users.find((x) => x.email.toLowerCase() === email.toLowerCase());
       return u ? { ...u, defaultScheduleId: u.defaultScheduleId ?? null } : undefined;
@@ -152,6 +157,15 @@ test("api-keys: create/list/revoke", async () => {
 
   await assert.rejects(apiKeysRevoke({ id: "no-existe" }, ctx as never), /No existeix/);
   await assert.rejects(apiKeysList({ email: "nobody@x.com" }, ctx as never), /No hi ha cap usuari/);
+});
+
+test("admin-deployment: assegura la fila Deployment amb la llicència self-host", async () => {
+  const db = makeCalcomDb();
+  const ctx = makeCtx(db);
+  const res = await adminDeployment({}, ctx as never);
+  assert.deepEqual(res, { id: 1, licenseKey: "00000000-0000-0000-0000-000000000000", selfHost: true });
+  const custom = await adminDeployment({ licenseKey: "11111111-1111-1111-1111-111111111111" }, ctx as never);
+  assert.equal(custom.selfHost, false);
 });
 
 test("admin no configurat → error clar", async () => {

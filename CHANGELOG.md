@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1 — 2026-10-11
+
+- `admin-deployment`: assegura la fila `Deployment` amb la **llicència self-host**
+  de Cal.diy (`00000000-...`) — el pas oficial (apps/api/v2/README.md) perquè
+  l'API v2 accepti API keys; sense això respon «Invalid or missing
+  CALCOM_LICENSE_KEY» (el «paywall» que la UI mostra com a funció comercial).
+- `calcom-api`: env `CALCOM_LICENSE_KEY` (valor self-host documentat).
+
 ## 0.2.0 — 2026-10-11
 
 - **Mòdul d'administració** (la UI de Cal.diy gateja les API keys com a funció

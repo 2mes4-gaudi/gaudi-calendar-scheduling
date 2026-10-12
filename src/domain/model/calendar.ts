@@ -236,6 +236,19 @@ export const cronTickInput = z.object({
 
 // ── Administració (provisioning d'usuaris i API keys; la UI ho gateja com a "comercial") ──
 
+export const adminDeploymentInput = z.object({
+  licenseKey: z
+    .string()
+    .optional()
+    .describe("Llicència (per defecte la self-host de Cal.diy: 00000000-0000-0000-0000-000000000000)"),
+});
+
+export const adminDeploymentOutput = z.object({
+  id: z.number(),
+  licenseKey: z.string(),
+  selfHost: z.boolean().describe("true si és la llicència self-host documentada"),
+});
+
 export const adminBootstrapInput = z.object({
   email: z.string().optional().describe("Email de l'usuari Cal.diy (per defecte: tots els usuaris registrats a la plataforma)"),
   username: z.string().optional().describe("Username Cal.diy (per defecte derivat de l'email; només amb email explícit)"),

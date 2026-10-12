@@ -37,6 +37,8 @@ export interface CalendarApiKeyRow {
 
 /** Store d'administració sobre la BD de Cal.diy (PostgreSQL del producte). */
 export interface CalendarAdminStore {
+  /** Assegura la fila Deployment (license self-host). Vegeu apps/api/v2/README.md de Cal.diy. */
+  ensureDeploymentLicense(licenseKey: string): Promise<{ id: number; licenseKey: string }>;
   findUserByEmail(email: string): Promise<CalendarUserRow | undefined>;
   findUserByUsername(username: string): Promise<CalendarUserRow | undefined>;
   isUsernameTaken(username: string): Promise<boolean>;

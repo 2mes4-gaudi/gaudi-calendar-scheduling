@@ -39,6 +39,19 @@ export async function createCalendarAdminStore(connectionString: string): Promis
   });
 
   return {
+    async ensureDeploymentLicense(licenseKey) {
+      const { rows } = await pool.query<{ id: number; licenseKey: string | null }>(
+        `INSERT INTO "Deployment" (id, "licenseKey", "agreedLicenseAt")
+         VALUES (1, $1, now())
+         ON CONFLICT (id) DO UPDATE
+           SET "licenseKey" = EXCLUDED."licenseKey",
+               "agreedLicenseAt" = COALESCE("Deployment"."agreedLicenseAt", EXCLUDED."agreedLicenseAt")
+         RETURNING id, "licenseKey"`,
+        [licenseKey]
+      );
+      return { id: rows[0].id, licenseKey: rows[0].licenseKey ?? licenseKey };
+    },
+
     async findUserByEmail(email) {
       const { rows } = await pool.query<{ id: number; username: string | null; email: string; defaultScheduleId: number | null }>(
         `SELECT id, username, email, "defaultScheduleId" FROM users WHERE lower(email) = lower($1) LIMIT 1`,

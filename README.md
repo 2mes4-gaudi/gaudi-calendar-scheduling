@@ -51,6 +51,7 @@ completa per a agents i un stack de producte declaratiu desplegat a K3s.
    ```
 5. **Provisioning d'admin** (API key inclosa — la UI la gateja com a comercial):
    ```bash
+   node dist/bin.js scheduling admin-deployment --json
    node dist/bin.js scheduling admin-bootstrap ericmora82@gmail.com ericmora --json
    # → desa GAUDI_CALENDAR_API_KEY (la key retornada) i GAUDI_CALENDAR_DEFAULT_USERNAME=ericmora
    ```
@@ -74,6 +75,9 @@ l'operativa és **CLI-first**, el feature inclou un mòdul d'administració que
 provisiona directament a la BD de Cal.diy amb la mateixa mecànica del producte
 (`hashedKey = sha256(key sense prefix)`, key presentada `<prefix><key>`):
 
+- `scheduling admin-deployment` — assegura la fila `Deployment` amb la llicència
+  self-host documentada (`00000000-...`); **imprescindible**: sense això l'API v2
+  respon «Invalid or missing CALCOM_LICENSE_KEY» en usar API keys.
 - `scheduling admin-bootstrap [email] [username]` — crea els usuaris de
   plataforma a Cal.diy (usuari + horari per defecte Mon-Fri 9-17 + API key si no
   en té), idempotent. Sense email → tots els registrats (`kernel_user_profiles`).

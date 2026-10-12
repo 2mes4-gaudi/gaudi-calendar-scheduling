@@ -4,6 +4,8 @@ import type { SchedulingContext } from "../../ports/context.js";
 import { healthOutput } from "../model/health.js";
 import {
   adminBootstrapInput,
+  adminDeploymentInput,
+  adminDeploymentOutput,
   adminBootstrapOutput,
   apiKeysCreateInput,
   apiKeysCreateOutput,
@@ -59,7 +61,7 @@ import {
   bookingOutput,
 } from "../model/calendar.js";
 import { buildBookingUrl } from "../services/booking-url.js";
-import { adminBootstrap, apiKeysCreate, apiKeysList, apiKeysRevoke } from "../services/admin-service.js";
+import { adminBootstrap, adminDeployment, apiKeysCreate, apiKeysList, apiKeysRevoke } from "../services/admin-service.js";
 import {
   cancelBooking,
   confirmBooking,
@@ -406,6 +408,16 @@ export function buildRegistry(): ActionRegistry {
   });
 
   // ── Administració (provisioning; la UI ho gateja com a "funció comercial") ──
+  register(registry, {
+    id: "scheduling.admin-deployment",
+    description:
+      "Assegura la fila Deployment amb la llicència self-host de Cal.diy (sense això l'API v2 rebutja les API keys: 'Invalid or missing CALCOM_LICENSE_KEY'). Procediment oficial self-host.",
+    inputSchema: adminDeploymentInput,
+    outputSchema: adminDeploymentOutput,
+    handler: adminDeployment,
+    meta: { destructive: false, permission: "scheduling.write" },
+  });
+
   register(registry, {
     id: "scheduling.admin-bootstrap",
     description:

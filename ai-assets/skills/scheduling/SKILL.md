@@ -89,7 +89,10 @@ accions ho fan directament (per això l'accés és CLI-first). Requereixen
 `GAUDI_CALENDAR_DB_URL` + `POSTGRES_URL` configurats:
 
 ```bash
-# Crea/provisiona tots els usuaris de plataforma (usuari + horari Mon-Fri 9-17 + API key si no en té)
+# 1. Llicència self-host (pas oficial: sense això l'API rebutja les API keys)
+node dist/bin.js scheduling admin-deployment --json
+
+# 2. Crea/provisiona tots els usuaris de plataforma (usuari + horari Mon-Fri 9-17 + API key si no en té)
 node dist/bin.js scheduling admin-bootstrap --json
 
 # Un usuari concret amb username explícit (idempotent; la key només es mostra en crear-la)
