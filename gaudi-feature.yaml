@@ -2,7 +2,7 @@
   "manifest": "1.3",
   "id": "calendar.scheduling",
   "name": "Calendar Scheduling",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Gestió de calendari i reserves sobre Cal.diy (Cal.com): event types, disponibilitat (slots), schedules, bookings (crear/get/cancel·lar/reprogramar/confirmar), enllaços de calendari i generació d'URLs de reserva amb opcions. Integració de producte open source (SPEC §15c): stack Cal.diy declarat a platform_services[] i jobs interns via daemons[].",
   "author": "2mes4-gaudi",
   "repository": {

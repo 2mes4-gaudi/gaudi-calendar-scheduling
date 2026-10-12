@@ -62,14 +62,20 @@ export async function createCalendarAdminStore(connectionString: string): Promis
     },
 
     async setAppKeys(slug, keys, enabled = true) {
-      const { rows } = await pool.query<{ slug: string; enabled: boolean | null }>(
+      // Les apps existeixen a la BD (syncAppMeta); UPDATE primer. L'INSERT és
+      // defensiu (categories és un enum array: cal el cast explícit).
+      const update = await pool.query<{ slug: string; enabled: boolean | null }>(
+        `UPDATE "App" SET keys = $2::jsonb, enabled = $3 WHERE slug = $1 RETURNING slug, enabled`,
+        [slug, JSON.stringify(keys), enabled]
+      );
+      if (update.rows[0]) return { slug: update.rows[0].slug, enabled: Boolean(update.rows[0].enabled) };
+      const insert = await pool.query<{ slug: string; enabled: boolean | null }>(
         `INSERT INTO "App" (slug, "dirName", categories, keys, enabled)
-         VALUES ($1, $1, ARRAY[]::text[], $2::jsonb, $3)
-         ON CONFLICT (slug) DO UPDATE SET keys = EXCLUDED.keys, enabled = EXCLUDED.enabled
+         VALUES ($1, $1, ARRAY[]::"AppCategories"[], $2::jsonb, $3)
          RETURNING slug, enabled`,
         [slug, JSON.stringify(keys), enabled]
       );
-      return { slug: rows[0].slug, enabled: Boolean(rows[0].enabled) };
+      return { slug: insert.rows[0].slug, enabled: Boolean(insert.rows[0].enabled) };
     },
 
     async setAppEnabled(slug, enabled) {

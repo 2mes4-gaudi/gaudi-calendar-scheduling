@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.2 — 2026-10-12
+
+- `apps-set-credentials`: UPDATE primer i INSERT defensiu amb cast d'enum
+  (`"AppCategories"[]`) — abans fallava amb apps existents (syncAppMeta) perquè
+  l'INSERT ... ON CONFLICT avaluava l'array de categories com a text[].
+
 ## 0.4.1 — 2026-10-12
 
 - `calendars-list`/`calendars-status`: inclouen els calendaris seleccionats per a
