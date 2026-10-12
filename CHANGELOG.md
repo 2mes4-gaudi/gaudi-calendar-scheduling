@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.4 — 2026-10-12
+
+- calcom-api: `NEXT_PUBLIC_WEBAPP_URL`/`NEXT_PUBLIC_WEBSITE_URL` (les constants
+  de cal.com les llegeixen d'aquí; els `bookingUrl` de l'API sortien com
+  http://localhost:3000).
+
 ## 0.2.3 — 2026-10-12
 
 - calcom-api comparteix NEXTAUTH_SECRET i CALENDSO_ENCRYPTION_KEY amb
