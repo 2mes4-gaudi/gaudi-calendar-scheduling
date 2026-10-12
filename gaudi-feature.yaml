@@ -2,7 +2,7 @@
   "manifest": "1.3",
   "id": "calendar.scheduling",
   "name": "Calendar Scheduling",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Gestió de calendari i reserves sobre Cal.diy (Cal.com): event types, disponibilitat (slots), schedules, bookings (crear/get/cancel·lar/reprogramar/confirmar), enllaços de calendari i generació d'URLs de reserva amb opcions. Integració de producte open source (SPEC §15c): stack Cal.diy declarat a platform_services[] i jobs interns via daemons[].",
   "author": "2mes4-gaudi",
   "repository": {
@@ -269,6 +269,7 @@
         "name": "calcom-api",
         "image": "ghcr.io/2mes4-gaudi/caldiy-api-v2:v6.2.0-g1",
         "port": 8080,
+        "secrets": ["JWT_SECRET"],
         "env": [
           "NODE_ENV=production",
           "API_PORT=8080",
@@ -279,8 +280,9 @@
           "DATABASE_READ_URL=@postgres:calcom-db",
           "DATABASE_WRITE_URL=@postgres:calcom-db",
           "REDIS_URL=@cache:calcom-cache",
-          "NEXTAUTH_SECRET=@secret:NEXTAUTH_SECRET",
-          "JWT_SECRET=@secret:NEXTAUTH_SECRET",
+          "NEXTAUTH_SECRET=@secretRef:calcom-web-secret:NEXTAUTH_SECRET",
+          "CALENDSO_ENCRYPTION_KEY=@secretRef:calcom-web-secret:CALENDSO_ENCRYPTION_KEY",
+          "JWT_SECRET=@secret:JWT_SECRET",
           "REWRITE_API_V2_PREFIX=true",
           "CALCOM_LICENSE_KEY=00000000-0000-0000-0000-000000000000",
           "IS_TEAM_BILLING_ENABLED=false",

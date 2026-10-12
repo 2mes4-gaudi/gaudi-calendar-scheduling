@@ -3,9 +3,9 @@ name: docker (Cal.diy images)
 # Construeix les imatges del producte Cal.diy pinades i les publica a ghcr:
 #  - caldiy-web   (Next.js amb NEXT_PUBLIC_WEBAPP_URL incrustada)
 #  - caldiy-api-v2 (API v2 standalone; upstream no en publica imatge)
+# Construcció MANUAL i dirigida (gh workflow run docker.yml -f components=api|web|both).
+# Els releases del feature NO han de reconstruir les imatges del producte.
 on:
-  push:
-    tags: ["v*"]
   workflow_dispatch:
     inputs:
       caldiy_ref:

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.3 — 2026-10-12
+
+- calcom-api comparteix NEXTAUTH_SECRET i CALENDSO_ENCRYPTION_KEY amb
+  calcom-web via `@secretRef:calcom-web-secret:<clau>` (l'upstream exigeix que
+  coincideixin: el web xifra i l'API desxifra). `JWT_SECRET` propi (generat).
+- CI d'imatges passa a dispatch manual (els releases del feature no
+  reconstrueixen el producte).
+
 ## 0.2.2 — 2026-10-11
 
 - CI: les imatges poden portar patches Gaudi (platform/caldiy/patches) aplicats
