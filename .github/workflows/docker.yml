@@ -68,7 +68,7 @@ jobs:
         run: |
           for p in platform/caldiy/patches/*.patch; do
             echo "→ applying $p"
-            git -C caldiy apply "$p"
+            git -C caldiy apply "$PWD/$p"
           done
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
