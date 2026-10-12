@@ -87,6 +87,43 @@ provisiona directament a la BD de Cal.diy amb la mateixa mecànica del producte
 Requereix: `GAUDI_CALENDAR_DB_URL` (BD de Cal.diy; del Secret
 `calcom-db-postgres-secret`) i `POSTGRES_URL` (usuaris de plataforma).
 
+## Configuració de Google Calendar (sync bidireccional)
+
+El sync amb Google és **bidireccional** en l'ús pràctic: Cal.diy llegeix la
+disponibilitat dels calendaris connectats (els esdeveniments de Google ocupen
+franges i bloquegen reserves) i escriu cada reserva al **calendari de
+referència** (Destination Calendar). La configuració és 100% agentica:
+
+1. **Google Cloud Console** (una vegada):
+   - APIs & Services → Library → activa **Google Calendar API**.
+   - Credentials → Create OAuth client ID → **Web application** amb la redirect URI:
+     `https://cal.apps.ona.gaudi.2mes4.com/api/integrations/googlecalendar/callback`
+   - Si el consent screen està en *Testing*, afegeix el compte com a **Test user**.
+2. **Credencials com a configuració del mòdul** (mai al repo — és públic):
+   ```bash
+   gaudi env set GAUDI_CALENDAR_GOOGLE_CREDENTIALS_JSON '{"client_id":"...","client_secret":"..."}' --scope platform
+   gaudi env sync-k8s --namespace gaudi-platform
+   # Equivalent via agent/CLI (desa a l'app google-calendar de la BD de Cal.diy i l'activa):
+   scheduling apps-set-credentials google-calendar '{"client_id":"...","client_secret":"..."}'
+   ```
+3. **Connectar el compte** (agent o usuari):
+   ```bash
+   scheduling calendars-connect        # retorna l'enllaç OAuth → obrir-lo amb sessió de Cal.diy
+   ```
+   En autoritzar, Cal.diy desa la credencial i marca el calendari **principal**
+   per a comprovació de conflictes (SelectedCalendar).
+4. **Calendari de referència** (on cauen totes les reserves):
+   ```bash
+   scheduling calendars-list                          # veure credencials + seleccionats + destinació
+   scheduling destination-calendar-set google_calendar <Calendar ID>
+   ```
+   - `<Calendar ID>`: a Google Calendar → Settings del calendari → *Calendar ID`
+     (el principal és l'email; els secundaris `...@group.calendar.google.com`).
+   - **Diversos comptes Google**: connecta cada compte per separat
+     (`calendars-connect` un cop per compte) i tria el de referència que vulguis.
+   - **Diversos calendaris del mateix compte**: el de destinació és l'únic que rep
+     les reserves; els altres es poden seleccionar per conflictes.
+
 ## Operació
 
 - **Migracions**: les executa el `bootstrap` del servei `calcom-web` a cada deploy (idempotent).

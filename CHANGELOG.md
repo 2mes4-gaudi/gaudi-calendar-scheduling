@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.3 — 2026-10-12
+
+- README: guia completa de configuració de Google Calendar (client OAuth,
+  credencials com a configuració del mòdul via GAUDI_CALENDAR_GOOGLE_CREDENTIALS_JSON,
+  connexió, calendari de referència i multi-compte).
+
 ## 0.4.2 — 2026-10-12
 
 - `apps-set-credentials`: UPDATE primer i INSERT defensiu amb cast d'enum
