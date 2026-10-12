@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.2 — 2026-10-11
+
+- CI: les imatges poden portar patches Gaudi (platform/caldiy/patches) aplicats
+  sobre cal.diy pinat; l'API v2 passa a `caldiy-api-v2:v6.2.0-g1`.
+- Patch 0001: `DeploymentsService.checkLicense()` accepta `{valid}` (el que
+  respon console.cal.com, també per la clau self-host documentada) a més de
+  `{status}` — sense això TOTES les API keys fallaven amb "Invalid or missing
+  CALCOM_LICENSE_KEY environment variable" (bug upstream v6.2.0).
+
 ## 0.2.1 — 2026-10-11
 
 - `admin-deployment`: assegura la fila `Deployment` amb la **llicència self-host**

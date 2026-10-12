@@ -18,3 +18,11 @@ xifratge NEXTAUTH/CALENDSO — sense elles les dades són inservibles).
 
 Upgrade: bump del tag d'imatge al manifest → `gaudi deploy` redeploya els serveis
 amb imatge nova i re-executa el bootstrap idempotent.
+
+## Patches Gaudi (platform/caldiy/patches)
+
+El CI aplica els patches d'aquest directori sobre cal.diy pinat abans de
+construir (l'API v2 es publica com `caldiy-api-v2:<ref>-gN`). Actuals:
+
+- `0001-api-v2-license-status-valid.patch` — checkLicense accepta `{valid}`
+  (resposta de console.cal.com) a més de `{status}`.

@@ -1,0 +1,36 @@
+From: Gaudi <platform@2mes4.com>
+Subject: [PATCH] api-v2: accept {valid} from console.cal.com license check
+
+console.cal.com/api/license/<key> responds {"valid": true} (also for the
+self-host key 00000000-0000-0000-0000-000000000000 documented in
+apps/api/v2/README.md), but DeploymentsService.checkLicense() only reads
+{status} - every API key request failed with "Invalid or missing
+CALCOM_LICENSE_KEY environment variable". Accept both fields.
+
+--- a/apps/api/v2/src/modules/deployments/deployments.service.ts
++++ b/apps/api/v2/src/modules/deployments/deployments.service.ts
+@@ -33,15 +33,21 @@
+     if (!licenseKey) {
+       return false;
+     }
+     const licenseKeyUrl = this.configService.get("api.licenseKeyUrl") + `/${licenseKey}`;
+     const cachedData = await this.redisService.redis.get(getLicenseCacheKey(licenseKey));
+     if (cachedData) {
+-      return (JSON.parse(cachedData) as LicenseCheckResponse)?.status;
++      return this.toLicenseStatus(JSON.parse(cachedData));
+     }
+     const response = await fetch(licenseKeyUrl, { mode: "cors" });
+-    const data = (await response.json()) as LicenseCheckResponse;
++    const data = await response.json();
+     const cacheKey = getLicenseCacheKey(licenseKey);
+     this.redisService.redis.set(cacheKey, JSON.stringify(data), "EX", CACHING_TIME);
+-    return data.status;
++    return this.toLicenseStatus(data);
++  }
++
++  /** console.cal.com respon {valid}; aquesta versio nomes llegia {status}. */
++  private toLicenseStatus(data: unknown): boolean {
++    const d = data as (LicenseCheckResponse & { valid?: boolean }) | undefined;
++    return d?.status ?? d?.valid ?? false;
+   }
+ }

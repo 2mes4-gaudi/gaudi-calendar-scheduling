@@ -61,6 +61,12 @@ jobs:
           repository: calcom/cal.diy
           ref: ${{ github.event.inputs.caldiy_ref || env.CALDIY_REF }}
           path: caldiy
+      - name: Apply Gaudi patches
+        run: |
+          for p in platform/caldiy/patches/*.patch; do
+            echo "→ applying $p"
+            git -C caldiy apply "$p"
+          done
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Login ghcr
@@ -75,4 +81,4 @@ jobs:
           context: caldiy
           file: caldiy/apps/api/v2/Dockerfile
           push: true
-          tags: ghcr.io/2mes4-gaudi/caldiy-api-v2:${{ github.event.inputs.caldiy_ref || env.CALDIY_REF }}
+          tags: ghcr.io/2mes4-gaudi/caldiy-api-v2:${{ github.event.inputs.caldiy_ref || env.CALDIY_REF }}-g1
