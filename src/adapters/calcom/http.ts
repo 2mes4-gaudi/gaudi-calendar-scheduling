@@ -83,6 +83,7 @@ export function createCalcomClient(opts: CalcomClientOptions): CalcomApi {
   return {
     get: (path, query, version) => request("GET", path, { query, version }),
     post: (path, body, version) => request("POST", path, { body, version }),
+    put: (path, body, version) => request("PUT", path, { body, version }),
     patch: (path, body, version) => request("PATCH", path, { body, version }),
     del: (path, version) => request("DELETE", path, { version }),
     async cron(job: string): Promise<CronResult> {

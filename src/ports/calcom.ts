@@ -26,6 +26,7 @@ export interface CronResult {
 export interface CalcomApi {
   get(path: string, query?: Record<string, unknown>, version?: string): Promise<unknown>;
   post(path: string, body?: unknown, version?: string): Promise<unknown>;
+  put(path: string, body?: unknown, version?: string): Promise<unknown>;
   patch(path: string, body?: unknown, version?: string): Promise<unknown>;
   del(path: string, version?: string): Promise<unknown>;
   /** Crida un job intern del web app (bookingReminder, webhookTriggers...). */

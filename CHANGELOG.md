@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.3.0 — 2026-10-12
+
+- **Recordatoris** («avisa'm X min abans»): `reminders-add/list/remove` +
+  `reminders-dispatch` (daemon `calcom-reminders` cada minut) que publica
+  `scheduling.reminder-due` al bus de l'agent; el motor de proactivitat del
+  kernel desperta l'agent i lliura al device configurat.
+- **Settings** (des de l'agent): `settings-get/set` — `reminder-device`
+  (id/nom de device o `none`, per defecte `none`) i `default-reminder-minutes`
+  (recordatori global, 0=off).
+- **Calendaris Google agentics**: `calendars-status`, `calendars-connect`
+  (retorna l'enllaç OAuth; si falta configuració retorna needsConfig perquè
+  l'agent la demani a l'usuari), `apps-set-credentials` (activa l'app i desa
+  credencials a la BD), `calendars-list` i `destination-calendar-set` (API v2).
+- DAO real de plataforma (KV `scheduling_reminders`/`scheduling_settings`) via
+  `ctx.db` amb POSTGRES_URL; nou env `GAUDI_CALENDAR_GOOGLE_CREDENTIALS_JSON`.
+
 ## 0.2.4 — 2026-10-12
 
 - calcom-api: `NEXT_PUBLIC_WEBAPP_URL`/`NEXT_PUBLIC_WEBSITE_URL` (les constants

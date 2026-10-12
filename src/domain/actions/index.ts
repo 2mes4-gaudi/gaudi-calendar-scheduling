@@ -13,6 +13,28 @@ import {
   apiKeysListOutput,
   apiKeysRevokeInput,
   apiKeysRevokeOutput,
+  appsSetCredentialsInput,
+  appsSetCredentialsOutput,
+  calendarsConnectInput,
+  calendarsConnectOutput,
+  calendarsListInput,
+  calendarsListOutput,
+  calendarsStatusInput,
+  calendarsStatusOutput,
+  destinationCalendarSetInput,
+  destinationCalendarSetOutput,
+  remindersAddInput,
+  remindersAddOutput,
+  remindersDispatchInput,
+  remindersDispatchOutput,
+  remindersListInput,
+  remindersListOutput,
+  remindersRemoveInput,
+  remindersRemoveOutput,
+  settingsGetInput,
+  settingsGetOutput,
+  settingsSetInput,
+  settingsSetOutput,
   bookingUrlInput,
   bookingUrlOutput,
   bookingsBySeatInput,
@@ -62,6 +84,21 @@ import {
 } from "../model/calendar.js";
 import { buildBookingUrl } from "../services/booking-url.js";
 import { adminBootstrap, adminDeployment, apiKeysCreate, apiKeysList, apiKeysRevoke } from "../services/admin-service.js";
+import {
+  appsSetCredentials,
+  calendarsConnect,
+  calendarsList,
+  calendarsStatus,
+  destinationCalendarSet,
+} from "../services/calendars-service.js";
+import {
+  remindersAdd,
+  remindersDispatch,
+  remindersList,
+  remindersRemove,
+  settingsGet,
+  settingsSet,
+} from "../services/reminders-service.js";
 import {
   cancelBooking,
   confirmBooking,
@@ -454,6 +491,114 @@ export function buildRegistry(): ActionRegistry {
     outputSchema: apiKeysRevokeOutput,
     handler: apiKeysRevoke,
     meta: { destructive: true, confirm: "required", permission: "scheduling.delete" },
+  });
+
+  // ── Recordatoris i settings (device configurable; default 'none') ────────
+  register(registry, {
+    id: "scheduling.reminders-add",
+    description:
+      "Programa un recordatori per a una reserva: X minuts abans, el feature publica un esdeveniment a la cua de l'agent i el kernel desperta l'agent perquè avisi el device configurat (settings reminder-device).",
+    inputSchema: remindersAddInput,
+    outputSchema: remindersAddOutput,
+    handler: remindersAdd,
+    meta: { destructive: false, permission: "scheduling.write" },
+  });
+
+  register(registry, {
+    id: "scheduling.reminders-list",
+    description: "Llista els recordatoris programats (i els settings efectius de device/minuts per defecte).",
+    inputSchema: remindersListInput,
+    outputSchema: remindersListOutput,
+    handler: remindersList,
+    meta: { destructive: false },
+  });
+
+  register(registry, {
+    id: "scheduling.reminders-remove",
+    description: "Elimina un recordatori pel seu id.",
+    inputSchema: remindersRemoveInput,
+    outputSchema: remindersRemoveOutput,
+    handler: remindersRemove,
+    meta: { destructive: true, confirm: "required", permission: "scheduling.delete" },
+  });
+
+  register(registry, {
+    id: "scheduling.reminders-dispatch",
+    description:
+      "Comprova els recordatoris vençuts i publica els avisos al bus de l'agent. L'executa el daemon calcom-reminders cada minut.",
+    inputSchema: remindersDispatchInput,
+    outputSchema: remindersDispatchOutput,
+    handler: remindersDispatch,
+    meta: { destructive: false, permission: "scheduling.write" },
+  });
+
+  register(registry, {
+    id: "scheduling.settings-get",
+    description: "Llegeix els settings del feature (reminder-device, default-reminder-minutes).",
+    inputSchema: settingsGetInput,
+    outputSchema: settingsGetOutput,
+    handler: settingsGet,
+    meta: { destructive: false },
+  });
+
+  register(registry, {
+    id: "scheduling.settings-set",
+    description:
+      "Configura un setting del feature: reminder-device (device id/name per als avisos; 'none' = cap) i default-reminder-minutes (recordatori global X min abans de cada reserva; 0 = off).",
+    inputSchema: settingsSetInput,
+    outputSchema: settingsSetOutput,
+    handler: settingsSet,
+    meta: { destructive: false, permission: "scheduling.write" },
+  });
+
+  // ── Calendaris externs (Google) ─────────────────────────────────────────
+  register(registry, {
+    id: "scheduling.calendars-status",
+    description:
+      "Estat de la integració de calendaris: app google-calendar (activada/configurada), calendaris connectats, calendari de destinació i settings.",
+    inputSchema: calendarsStatusInput,
+    outputSchema: calendarsStatusOutput,
+    handler: calendarsStatus,
+    meta: { destructive: false },
+  });
+
+  register(registry, {
+    id: "scheduling.calendars-connect",
+    description:
+      "Retorna l'enllaç OAuth per connectar Google Calendar. Si falta configuració (client_id/secret), retorna needsConfig amb el que cal demanar a l'usuari — mai inventar credencials.",
+    inputSchema: calendarsConnectInput,
+    outputSchema: calendarsConnectOutput,
+    handler: calendarsConnect,
+    meta: { destructive: false, permission: "scheduling.write" },
+  });
+
+  register(registry, {
+    id: "scheduling.calendars-list",
+    description: "Calendaris connectats (credencials de Google/Outlook) i calendari de destinació actual.",
+    inputSchema: calendarsListInput,
+    outputSchema: calendarsListOutput,
+    handler: calendarsList,
+    meta: { destructive: false },
+  });
+
+  register(registry, {
+    id: "scheduling.destination-calendar-set",
+    description:
+      "Fixa el calendari de destinació (totes les reserves s'hi escriuen). Necessita integration (ex: google_calendar) i externalId (a Google: 'Calendar ID' del calendari).",
+    inputSchema: destinationCalendarSetInput,
+    outputSchema: destinationCalendarSetOutput,
+    handler: destinationCalendarSet,
+    meta: { destructive: false, permission: "scheduling.write" },
+  });
+
+  register(registry, {
+    id: "scheduling.apps-set-credentials",
+    description:
+      "Desa les credencials OAuth (client_id/secret) de l'app google-calendar a la BD de Cal.diy i l'activa. Pas previ a calendars-connect.",
+    inputSchema: appsSetCredentialsInput,
+    outputSchema: appsSetCredentialsOutput,
+    handler: appsSetCredentials,
+    meta: { destructive: false, permission: "scheduling.write" },
   });
 
   return registry;

@@ -82,6 +82,57 @@ node dist/bin.js scheduling booking-url demo "" suport --json
 node dist/bin.js scheduling booking-url demo eric "" acme --json
 ```
 
+## Recordatoris («avisa'm X minuts abans») i device d'avisos
+
+Els recordatoris s'executen amb el daemon `calcom-reminders` (cada minut): si toca,
+publica un esdeveniment a la cua NATS de l'agent i el kernel desperta l'agent, que
+lliura l'avís al **device configurat**. El device és un **setting del feature**
+(per defecte `none` = cap avís).
+
+```bash
+# Programa un recordatori per a una reserva
+node dist/bin.js scheduling reminders-add <bookingUid> 10 --json
+node dist/bin.js scheduling reminders-add <bookingUid> 30 "Porta els informes" --json
+
+# Settings (configurables des de l'agent)
+node dist/bin.js scheduling settings-get --json
+node dist/bin.js scheduling settings-set reminder-device telegram --json   # o ipad, none...
+node dist/bin.js scheduling settings-set default-reminder-minutes 15 --json # global per a totes les reserves (0=off)
+
+# Gestió
+node dist/bin.js scheduling reminders-list --json
+node dist/bin.js scheduling reminders-remove <id> --yes --json
+```
+
+Quan l'usuari demani que l'avisin (a un device concret), tria el device amb
+`kernel-device-list` (eina del kernel) i desa'l amb `settings-set reminder-device
+<id|nom>`. Si demana que sigui global («sempre 10 min abans»), combina
+`default-reminder-minutes` + device.
+
+## Calendaris externs (Google): connectar i sincronitzar
+
+```bash
+# 1) Estat (app activada? credencials? calendaris connectats? destinació?)
+node dist/bin.js scheduling calendars-status --json
+
+# 2) Enllaç de connexió. Si retorna needsConfig:true → DEMANA a l'usuari el
+#    client_id/client_secret (mai els inventis) i digues-li la redirect URI exacta.
+node dist/bin.js scheduling calendars-connect --json
+
+# 3) Amb el client_id/client_secret de l'usuari → activa l'app
+node dist/bin.js scheduling apps-set-credentials google-calendar '{"client_id":"...","client_secret":"..."}' --json
+
+# 4) Torna a calendars-connect i PASSA L'ENLLAÇ a l'usuari (obre'l amb sessió de Cal.diy)
+
+# 5) Calendaris connectats i calendari de destinació (totes les reserves s'hi escriuen)
+node dist/bin.js scheduling calendars-list --json
+node dist/bin.js scheduling destination-calendar-set google_calendar <calendar-id> --json
+```
+
+Regla d'or: si falta qualsevol element de configuració (credencials OAuth,
+Calendar ID, device...), **demana'l a l'usuari amb instruccions exactes**; no
+inventis valors ni assumeixis calendaris pel nom.
+
 ## Administració (provisioning d'usuaris i API keys)
 
 La UI de Cal.diy gateja la creació d'API keys com a «funció comercial»; aquestes

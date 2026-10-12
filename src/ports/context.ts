@@ -20,6 +20,8 @@ export interface CalendarConfig {
   calendarDbUrl?: string;
   /** Postgres de la plataforma (usuaris registrats; per defecte POSTGRES_URL). */
   platformDbUrl?: string;
+  /** Credencials OAuth de Google (JSON {client_id, client_secret}) per a apps-set-credentials. */
+  googleCredentialsJson?: string;
 }
 
 /**

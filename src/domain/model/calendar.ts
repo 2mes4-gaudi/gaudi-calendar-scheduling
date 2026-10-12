@@ -304,6 +304,137 @@ export const apiKeysRevokeInput = z.object({
 
 export const apiKeysRevokeOutput = z.object({ revoked: z.boolean(), id: z.string() });
 
+// ── Recordatoris (NATS wake → agent → device) i settings del feature ──────
+
+export const reminderSchema = z.object({
+  id: z.string(),
+  bookingUid: z.string(),
+  title: z.string().optional(),
+  start: z.string().describe("Inici de la reserva (ISO UTC)"),
+  minutesBefore: z.number(),
+  message: z.string().optional(),
+  device: z.string().optional().describe("Device per aquest recordatori ('' o 'none' = cap)"),
+  status: z.enum(["pending", "dispatched", "skipped", "expired"]),
+  skipReason: z.string().optional(),
+  createdAt: z.string(),
+  dispatchedAt: z.string().optional(),
+});
+export type ReminderModel = z.infer<typeof reminderSchema>;
+
+export const remindersAddInput = z.object({
+  bookingUid: z.string().describe("UID de la reserva"),
+  minutesBefore: z.coerce.number().int().min(1).max(10080).describe("Minuts abans de l'inici (1..10080)"),
+  message: z.string().optional().describe("Missatge propi per al recordatori (si no, l'agent el redacta)"),
+  device: z.string().optional().describe("Device per aquest recordatori (per defecte: setting reminder-device)"),
+});
+
+export const remindersAddOutput = z.object({ reminder: reminderSchema });
+
+export const remindersListInput = z.object({
+  bookingUid: z.string().optional().describe("Filtra per reserva"),
+});
+
+export const remindersListOutput = z.object({
+  reminders: z.array(reminderSchema),
+  settings: z.object({ device: z.string(), defaultMinutes: z.number() }),
+});
+
+export const remindersRemoveInput = z.object({ id: z.string() });
+export const remindersRemoveOutput = z.object({ removed: z.boolean(), id: z.string() });
+
+export const remindersDispatchInput = z.object({
+  now: z.string().optional().describe("Instant de referència ISO (diagnòstic; per defecte ara)"),
+});
+
+export const remindersDispatchOutput = z.object({
+  ok: z.boolean(),
+  device: z.string(),
+  defaultMinutes: z.number(),
+  dispatched: z.array(
+    z.object({ id: z.string(), bookingUid: z.string(), title: z.string().optional(), start: z.string(), minutesBefore: z.number() })
+  ),
+  skipped: z.array(z.object({ id: z.string(), reason: z.string() })),
+  expired: z.number(),
+});
+
+export const settingsGetInput = z.object({
+  key: z.string().optional().describe("Clau del setting (per defecte: tots)"),
+});
+
+export const settingsGetOutput = z.object({ settings: z.record(z.string()) });
+
+export const settingsSetInput = z.object({
+  key: z
+    .string()
+    .describe("Setting: reminder-device (device id/name o 'none'), default-reminder-minutes (0=off)"),
+  value: z.string(),
+});
+
+export const settingsSetOutput = z.object({ key: z.string(), value: z.string() });
+
+// ── Calendaris externs (Google) ───────────────────────────────────────────
+
+export const calendarsStatusInput = z.object({});
+
+export const calendarsStatusOutput = z.object({
+  user: z.object({ id: z.number(), username: z.string(), email: z.string() }),
+  app: z.object({
+    slug: z.string(),
+    enabled: z.boolean(),
+    configured: z.boolean().describe("true si l'app té client_id/secret a la BD"),
+  }),
+  calendarCredentials: z.array(
+    z.object({ id: z.number(), type: z.string(), appId: z.string().nullish(), createdAt: z.string().nullish() })
+  ),
+  destinationCalendar: z.unknown().nullish(),
+  settings: z.object({ device: z.string(), defaultMinutes: z.number() }),
+});
+
+export const calendarsConnectInput = z.object({
+  integration: z.string().optional().describe("google_calendar (per defecte)"),
+});
+
+export const calendarsConnectOutput = z.object({
+  ok: z.boolean(),
+  url: z.string().optional().describe("Enllaç d'autorització OAuth (obre'l al navegador amb la sessió de Cal.diy)"),
+  needsConfig: z.boolean(),
+  missing: z.array(z.string()),
+  instructions: z.array(z.string()),
+  redirectUri: z.string(),
+});
+
+export const calendarsListInput = z.object({});
+
+export const calendarsListOutput = z.object({
+  user: z.object({ id: z.number(), username: z.string(), email: z.string() }),
+  calendarCredentials: z.array(
+    z.object({ id: z.number(), type: z.string(), appId: z.string().nullish(), createdAt: z.string().nullish() })
+  ),
+  destinationCalendar: z.unknown().nullish(),
+});
+
+export const destinationCalendarSetInput = z.object({
+  integration: z.string().describe("Integració del calendari (ex: google_calendar)"),
+  externalId: z.string().describe("Id extern del calendari (a Google: Settings del calendari → 'Calendar ID')"),
+});
+
+export const destinationCalendarSetOutput = z.object({ destination: z.unknown() });
+
+export const appsSetCredentialsInput = z.object({
+  slug: z.string().optional().describe("Slug de l'app (per defecte google-calendar)"),
+  credentialsJson: z
+    .string()
+    .optional()
+    .describe("JSON {client_id, client_secret} (per defecte: env GAUDI_CALENDAR_GOOGLE_CREDENTIALS_JSON)"),
+});
+
+export const appsSetCredentialsOutput = z.object({
+  slug: z.string(),
+  enabled: z.boolean(),
+  configured: z.boolean(),
+  redirectUri: z.string(),
+});
+
 // ── Outputs ───────────────────────────────────────────────────────────────
 
 export const meOutput = z.object({ user: z.unknown() });

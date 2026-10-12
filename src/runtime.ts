@@ -5,6 +5,7 @@ import {
   createFeatureLogger,
   createLocalMessageBus,
   createNatsMessageBus,
+  createStore,
   type CredentialProvider,
   type DatabaseAdapter,
   type Logger,
@@ -66,11 +67,34 @@ export interface RuntimeOptions {
   calcom?: CalcomApi;
   config?: CalendarConfig;
   messageBus?: MessageBus;
+  db?: DatabaseAdapter;
   clock?: () => Date;
   noConfig?: boolean;
   fetchImpl?: typeof fetch;
   /** Mòdul d'administració injectable (tests). */
   admin?: SchedulingContext["admin"];
+}
+
+/** DAO real (PostgreSQL de plataforma) quan hi ha POSTGRES_URL; si no, memòria. */
+async function loadDb(
+  config: CalendarConfig,
+  credentials: CredentialProvider,
+  logger: Logger,
+  opts: RuntimeOptions
+): Promise<DatabaseAdapter> {
+  if (opts.db) return opts.db;
+  if (opts.noConfig || !config.platformDbUrl) return makeMemoryDb();
+  try {
+    return (await createStore(
+      { provider: "postgres", postgres: { url: config.platformDbUrl } } as never,
+      credentials
+    )) as unknown as DatabaseAdapter;
+  } catch (err) {
+    logger.warn(
+      `[calendar.scheduling] store postgres no disponible (${(err as Error).message}); ús de memòria — recordatoris/settings no persistiran.`
+    );
+    return makeMemoryDb();
+  }
 }
 
 export interface SchedulingRuntime {
@@ -92,11 +116,12 @@ export async function buildRuntime(opts: RuntimeOptions = {}): Promise<Schedulin
       ? createLocalMessageBus({ source: manifest.id, version: manifest.version })
       : createNatsMessageBus({ source: manifest.id, version: manifest.version, logger }));
 
+  const db = await loadDb(config, credentials, logger, opts);
   const ctx: SchedulingContext = {
     credentials,
     logger,
     dryRun: false,
-    db: makeMemoryDb(),
+    db,
     calcom,
     config,
     messageBus,

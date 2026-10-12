@@ -36,6 +36,7 @@ export function loadCalendarConfig(env: NodeJS.ProcessEnv = process.env): Calend
     apiVersion: env.GAUDI_CALENDAR_API_VERSION ?? API_VERSIONS.bookings,
     calendarDbUrl: env.GAUDI_CALENDAR_DB_URL,
     platformDbUrl: env.POSTGRES_URL,
+    googleCredentialsJson: env.GAUDI_CALENDAR_GOOGLE_CREDENTIALS_JSON,
   };
 }
 

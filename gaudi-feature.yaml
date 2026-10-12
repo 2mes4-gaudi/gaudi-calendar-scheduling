@@ -39,6 +39,14 @@
       "restart": "on-failure"
     },
     {
+      "id": "calcom-reminders",
+      "description": "Recordatoris de reserves: cada minut comprova els vençuts i publica l'avís al bus de l'agent (el kernel desperta l'agent i lliura al device configurat; setting reminder-device, per defecte 'none')",
+      "command": "node dist/bin.js scheduling reminders-dispatch --json",
+      "schedule": "*/1 * * * *",
+      "enabled": true,
+      "restart": "on-failure"
+    },
+    {
       "id": "calcom-maintenance",
       "description": "Manteniment horari de Cal.diy (changeTimeZone, selected-calendars, syncAppMeta, neteja de subscripcions)",
       "command": "node dist/bin.js scheduling cron-tick changeTimeZone,selected-calendars,syncAppMeta,calendar-subscriptions-cleanup --json",
@@ -78,6 +86,17 @@
     { "id": "scheduling.schedules-delete", "destructive": true, "confirm": "required", "permission": "scheduling.delete" },
     { "id": "scheduling.booking-url", "destructive": false },
     { "id": "scheduling.cron-tick", "destructive": false, "permission": "scheduling.write" },
+    { "id": "scheduling.reminders-add", "destructive": false, "permission": "scheduling.write" },
+    { "id": "scheduling.reminders-list", "destructive": false },
+    { "id": "scheduling.reminders-remove", "destructive": true, "confirm": "required", "permission": "scheduling.delete" },
+    { "id": "scheduling.reminders-dispatch", "destructive": false, "permission": "scheduling.write" },
+    { "id": "scheduling.settings-get", "destructive": false },
+    { "id": "scheduling.settings-set", "destructive": false, "permission": "scheduling.write" },
+    { "id": "scheduling.calendars-status", "destructive": false },
+    { "id": "scheduling.calendars-connect", "destructive": false, "permission": "scheduling.write" },
+    { "id": "scheduling.calendars-list", "destructive": false },
+    { "id": "scheduling.destination-calendar-set", "destructive": false, "permission": "scheduling.write" },
+    { "id": "scheduling.apps-set-credentials", "destructive": false, "permission": "scheduling.write" },
     { "id": "scheduling.admin-deployment", "destructive": false, "permission": "scheduling.write" },
     { "id": "scheduling.admin-bootstrap", "destructive": false, "permission": "scheduling.write" },
     { "id": "scheduling.api-keys-list", "destructive": false },
@@ -169,6 +188,16 @@
       "secret": true,
       "scope": "platform",
       "usedBy": ["scheduling.admin-bootstrap", "scheduling.api-keys-create", "scheduling.api-keys-revoke"]
+    },
+    {
+      "id": "google-credentials",
+      "envVar": "GAUDI_CALENDAR_GOOGLE_CREDENTIALS_JSON",
+      "description": "Credencials OAuth de Google Calendar (JSON)",
+      "descriptionLong": "JSON {\"client_id\":\"...\",\"client_secret\":\"...\"} del client OAuth 2.0 (Web) de Google Cloud. Cal afegir-hi la redirect URI https://cal.apps.ona.gaudi.2mes4.com/api/integrations/googlecalendar/callback. S'usa amb scheduling apps-set-credentials per activar/conectar Google Calendar.",
+      "required": false,
+      "secret": true,
+      "scope": "platform",
+      "usedBy": ["scheduling.apps-set-credentials", "scheduling.calendars-connect"]
     },
     {
       "id": "disable-signup",
@@ -305,6 +334,15 @@
       }
     }
   ],
+  "data": {
+    "postgres": {
+      "migrations": "db/migrations/",
+      "tables": [
+        { "name": "scheduling_reminders", "model": "Reminder" },
+        { "name": "scheduling_settings", "model": "Setting" }
+      ]
+    }
+  },
   "skills": [
     {
       "id": "scheduling",

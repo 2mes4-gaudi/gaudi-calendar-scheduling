@@ -35,10 +35,34 @@ export interface CalendarApiKeyRow {
   expiresAt: Date | null;
 }
 
+export interface CalendarCredentialRow {
+  id: number;
+  type: string;
+  appId: string | null;
+  createdAt: Date | null;
+}
+
+export interface DestinationCalendarRow {
+  id: number;
+  integration: string;
+  externalId: string;
+  userId: number | null;
+  eventTypeId: number | null;
+  credentialId: number | null;
+}
+
 /** Store d'administració sobre la BD de Cal.diy (PostgreSQL del producte). */
 export interface CalendarAdminStore {
   /** Assegura la fila Deployment (license self-host). Vegeu apps/api/v2/README.md de Cal.diy. */
   ensureDeploymentLicense(licenseKey: string): Promise<{ id: number; licenseKey: string }>;
+  /** Fila de l'App Store (enabled + keys). */
+  getApp(slug: string): Promise<{ slug: string; enabled: boolean; keys: Record<string, unknown> | null } | undefined>;
+  /** Desa les keys de l'app i (opcionalment) l'activa. */
+  setAppKeys(slug: string, keys: Record<string, unknown>, enabled?: boolean): Promise<{ slug: string; enabled: boolean }>;
+  /** Credencials de calendari connectades de l'usuari (type LIKE '%calendar%' o apps de calendari). */
+  listCalendarCredentials(userId: number): Promise<CalendarCredentialRow[]>;
+  /** Calendari de destinació de l'usuari (si en té). */
+  getDestinationCalendar(userId: number): Promise<DestinationCalendarRow | undefined>;
   findUserByEmail(email: string): Promise<CalendarUserRow | undefined>;
   findUserByUsername(username: string): Promise<CalendarUserRow | undefined>;
   isUsernameTaken(username: string): Promise<boolean>;

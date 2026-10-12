@@ -52,6 +52,52 @@ export async function createCalendarAdminStore(connectionString: string): Promis
       return { id: rows[0].id, licenseKey: rows[0].licenseKey ?? licenseKey };
     },
 
+    async getApp(slug) {
+      const { rows } = await pool.query<{ slug: string; enabled: boolean | null; keys: Record<string, unknown> | null }>(
+        `SELECT slug, enabled, keys FROM "App" WHERE slug = $1 LIMIT 1`,
+        [slug]
+      );
+      if (!rows[0]) return undefined;
+      return { slug: rows[0].slug, enabled: Boolean(rows[0].enabled), keys: rows[0].keys ?? null };
+    },
+
+    async setAppKeys(slug, keys, enabled = true) {
+      const { rows } = await pool.query<{ slug: string; enabled: boolean | null }>(
+        `INSERT INTO "App" (slug, "dirName", categories, keys, enabled)
+         VALUES ($1, $1, ARRAY[]::text[], $2::jsonb, $3)
+         ON CONFLICT (slug) DO UPDATE SET keys = EXCLUDED.keys, enabled = EXCLUDED.enabled
+         RETURNING slug, enabled`,
+        [slug, JSON.stringify(keys), enabled]
+      );
+      return { slug: rows[0].slug, enabled: Boolean(rows[0].enabled) };
+    },
+
+    async listCalendarCredentials(userId) {
+      const { rows } = await pool.query<{ id: number; type: string; appId: string | null; createdAt: Date | null }>(
+        `SELECT id, type, "appId", "createdAt" FROM "Credential"
+         WHERE "userId" = $1 AND (type LIKE '%calendar%' OR "appId" = 'google-calendar' OR "appId" = 'office365')
+         ORDER BY id DESC`,
+        [userId]
+      );
+      return rows;
+    },
+
+    async getDestinationCalendar(userId) {
+      const { rows } = await pool.query<{
+        id: number;
+        integration: string;
+        externalId: string;
+        userId: number | null;
+        eventTypeId: number | null;
+        credentialId: number | null;
+      }>(
+        `SELECT id, integration, "externalId", "userId", "eventTypeId", "credentialId"
+         FROM "DestinationCalendar" WHERE "userId" = $1 ORDER BY id LIMIT 1`,
+        [userId]
+      );
+      return rows[0];
+    },
+
     async findUserByEmail(email) {
       const { rows } = await pool.query<{ id: number; username: string | null; email: string; defaultScheduleId: number | null }>(
         `SELECT id, username, email, "defaultScheduleId" FROM users WHERE lower(email) = lower($1) LIMIT 1`,
