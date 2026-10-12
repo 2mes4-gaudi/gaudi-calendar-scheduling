@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.1 — 2026-10-12
+
+- `bookings-cancel`: si no s'indica motiu, se n'envia un de genèric (l'API v2
+  d'aquesta versió exigeix `cancellationReason`; abans fallava sense motiu).
+
 ## 0.3.0 — 2026-10-12
 
 - **Recordatoris** («avisa'm X min abans»): `reminders-add/list/remove` +

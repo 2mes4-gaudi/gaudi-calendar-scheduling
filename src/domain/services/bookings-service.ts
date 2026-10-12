@@ -73,7 +73,8 @@ export async function createBooking(input: z.infer<typeof bookingsCreateInput>, 
 export async function cancelBooking(input: z.infer<typeof bookingsCancelInput>, ctx: SchedulingContext) {
   const res = await ctx.calcom.post(
     `/v2/bookings/${input.bookingUid}/cancel`,
-    compact({ cancellationReason: input.reason }),
+    // L'API v2 d'aquesta versió EXIGEIX motiu: si no n'hi ha, se n'hi posa un de genèric.
+    compact({ cancellationReason: input.reason?.trim() || "Cancelled by organizer (Gaudi CLI)" }),
     API_VERSIONS.bookings
   );
   await publishSchedulingEvent(ctx, "scheduling.booking-cancelled", {
