@@ -11,6 +11,9 @@ on:
       caldiy_ref:
         description: "Ref de calcom/cal.diy (per defecte v6.2.0)"
         default: "v6.2.0"
+      components:
+        description: "components a construir: both | api | web"
+        default: "both"
 
 env:
   CALDIY_REF: v6.2.0
@@ -18,6 +21,7 @@ env:
 
 jobs:
   build-web:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.components != 'api' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -50,11 +54,14 @@ jobs:
             CALCOM_TELEMETRY_DISABLED=1
 
   build-api-v2:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.components != 'web' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     steps:
+      - name: Checkout aquest repo (patches Gaudi)
+        uses: actions/checkout@v4
       - name: Checkout cal.diy (pin)
         uses: actions/checkout@v4
         with:
