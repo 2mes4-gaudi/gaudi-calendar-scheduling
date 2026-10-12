@@ -60,14 +60,16 @@ jobs:
       contents: read
       packages: write
     steps:
-      - name: Checkout aquest repo (patches Gaudi)
-        uses: actions/checkout@v4
       - name: Checkout cal.diy (pin)
         uses: actions/checkout@v4
         with:
           repository: calcom/cal.diy
           ref: ${{ github.event.inputs.caldiy_ref || env.CALDIY_REF }}
           path: caldiy
+      - name: Checkout aquest repo (patches Gaudi, després per no esborrar caldiy/)
+        uses: actions/checkout@v4
+        with:
+          clean: false
       - name: Apply Gaudi patches
         run: |
           for p in platform/caldiy/patches/*.patch; do
