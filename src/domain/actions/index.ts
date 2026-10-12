@@ -13,6 +13,8 @@ import {
   apiKeysListOutput,
   apiKeysRevokeInput,
   apiKeysRevokeOutput,
+  appsEnableInput,
+  appsEnableOutput,
   appsSetCredentialsInput,
   appsSetCredentialsOutput,
   calendarsConnectInput,
@@ -83,7 +85,7 @@ import {
   bookingOutput,
 } from "../model/calendar.js";
 import { buildBookingUrl } from "../services/booking-url.js";
-import { adminBootstrap, adminDeployment, apiKeysCreate, apiKeysList, apiKeysRevoke } from "../services/admin-service.js";
+import { adminBootstrap, adminDeployment, appsEnable, apiKeysCreate, apiKeysList, apiKeysRevoke } from "../services/admin-service.js";
 import {
   appsSetCredentials,
   calendarsConnect,
@@ -588,6 +590,15 @@ export function buildRegistry(): ActionRegistry {
     inputSchema: destinationCalendarSetInput,
     outputSchema: destinationCalendarSetOutput,
     handler: destinationCalendarSet,
+    meta: { destructive: false, permission: "scheduling.write" },
+  });
+
+  register(registry, {
+    id: "scheduling.apps-enable",
+    description: "Activa (o desactiva) una app de Cal.diy existent (ex: google-meet per a videotrucades).",
+    inputSchema: appsEnableInput,
+    outputSchema: appsEnableOutput,
+    handler: appsEnable,
     meta: { destructive: false, permission: "scheduling.write" },
   });
 

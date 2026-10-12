@@ -60,7 +60,23 @@ function makeCtx(client: CalcomApi, overrides: Record<string, unknown> = {}) {
       credentials: { get: async () => undefined, has: async () => true },
       logger: { info: () => {}, warn: () => {}, error: () => {} },
       dryRun: false,
-      db: { kind: "postgres" as const, listCollections: async () => [], get: async () => null, set: async () => {}, delete: async () => {}, list: async () => [], listValues: async () => [] },
+      db: (() => {
+        const store = new Map<string, Map<string, unknown>>();
+        return {
+          kind: "postgres" as const,
+          listCollections: async () => [...store.keys()],
+          get: async <T>(c: string, k: string) => (store.get(c)?.get(k) as T) ?? null,
+          set: async (c: string, k: string, v: unknown) => {
+            if (!store.has(c)) store.set(c, new Map());
+            store.get(c)!.set(k, v);
+          },
+          delete: async (c: string, k: string) => {
+            store.get(c)?.delete(k);
+          },
+          list: async (c: string) => [...(store.get(c)?.keys() ?? [])],
+          listValues: async <T>(c: string) => [...(store.get(c)?.values() ?? [])] as T[],
+        };
+      })(),
       calcom: client,
       config: {
         apiBase: "http://calcom-api:8080",
@@ -179,7 +195,8 @@ test("bookings-create: entrada plana → body anidado con attendee y evento publ
   assert.equal(calls[0].path, "/v2/bookings");
   assert.deepEqual(body.attendee, { name: "Anna", email: "anna@example.com", timeZone: "Europe/Madrid" });
   assert.equal(body.start, "2026-10-20T09:00:00.000Z");
-  assert.equal(body.location, undefined);
+  // Sala de videotrucada SEMPRE (setting default-location, per defecte google-meet)
+  assert.deepEqual(body.location, { type: "integration", integration: "google-meet" });
   assert.deepEqual((out as { booking: { uid: string } }).booking.uid, "abc123");
   assert.equal(published[0].type, "scheduling.booking-created");
   assert.equal(published[0].payload.bookingUid, "abc123");
@@ -265,4 +282,76 @@ test("health: ok con API y web vivos; error si la API falla", async () => {
   } finally {
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }
+});
+
+test("bookings-create: fallback si la integració de videotrucada no està disponible (sense Google connectat)", async () => {
+  let call = 0;
+  const calls: Array<{ body?: unknown }> = [];
+  const client: CalcomApi = {
+    async get() {
+      return { status: "success", data: {} };
+    },
+    async post(_path: string, body?: unknown) {
+      calls.push({ body });
+      call++;
+      if (call === 1) {
+        throw new Error("Cal.diy POST /v2/bookings: No credential found for google-meet integration");
+      }
+      return { status: "success", data: { uid: "bk_fallback" } };
+    },
+    async put() {
+      return {};
+    },
+    async patch() {
+      return {};
+    },
+    async del() {
+      return {};
+    },
+    async cron(job: string) {
+      return { job, ok: true };
+    },
+  };
+  const { ctx } = makeCtx(client);
+  const registry = buildRegistry();
+
+  const out = (await registry.run(
+    "scheduling.bookings-create",
+    {
+      eventTypeId: 12,
+      start: "2026-10-20T09:00:00.000Z",
+      attendeeName: "Anna",
+      attendeeEmail: "anna@example.com",
+      attendeeTimeZone: "Europe/Madrid",
+    },
+    ctx as never
+  )) as { booking: { uid: string }; locationNote?: string };
+
+  assert.equal(calls.length, 2, "primer intent amb Meet + reintent sense location");
+  assert.deepEqual((calls[0].body as Record<string, unknown>).location, { type: "integration", integration: "google-meet" });
+  assert.equal((calls[1].body as Record<string, unknown>).location, undefined);
+  assert.equal(out.booking.uid, "bk_fallback");
+  assert.match(String(out.locationNote), /No s'ha pogut afegir 'google-meet'/);
+});
+
+test("bookings-create: setting default-location personalitzat i 'none'", async () => {
+  const { client, calls } = makeFakeClient();
+  const { ctx } = makeCtx(client);
+  const registry = buildRegistry();
+
+  await registry.run("scheduling.settings-set", { key: "default-location", value: "cal-video" }, ctx as never);
+  await registry.run(
+    "scheduling.bookings-create",
+    { eventTypeId: 1, start: "2026-10-20T09:00:00.000Z", attendeeName: "A", attendeeEmail: "a@b.c", attendeeTimeZone: "UTC" },
+    ctx as never
+  );
+  assert.deepEqual((calls[0].body as Record<string, unknown>).location, { type: "integration", integration: "cal-video" });
+
+  await registry.run("scheduling.settings-set", { key: "default-location", value: "none" }, ctx as never);
+  await registry.run(
+    "scheduling.bookings-create",
+    { eventTypeId: 1, start: "2026-10-20T10:00:00.000Z", attendeeName: "A", attendeeEmail: "a@b.c", attendeeTimeZone: "UTC" },
+    ctx as never
+  );
+  assert.equal((calls[1].body as Record<string, unknown>).location, undefined);
 });

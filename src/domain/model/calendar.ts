@@ -428,6 +428,13 @@ export const appsSetCredentialsInput = z.object({
     .describe("JSON {client_id, client_secret} (per defecte: env GAUDI_CALENDAR_GOOGLE_CREDENTIALS_JSON)"),
 });
 
+export const appsEnableInput = z.object({
+  slug: z.string().describe("Slug de l'app (ex: google-calendar, google-meet)"),
+  enabled: z.boolean().optional().describe("true per activar (per defecte), false per desactivar"),
+});
+
+export const appsEnableOutput = z.object({ slug: z.string(), enabled: z.boolean() });
+
 export const appsSetCredentialsOutput = z.object({
   slug: z.string(),
   enabled: z.boolean(),
@@ -449,7 +456,10 @@ export const slotsOutput = z.object({
   slots: z.unknown(),
 });
 export const bookingsOutput = z.object({ bookings: z.unknown(), pagination: z.unknown().optional() });
-export const bookingOutput = z.object({ booking: z.unknown() });
+export const bookingOutput = z.object({
+  booking: z.unknown(),
+  locationNote: z.string().optional().describe("Avís si la videotrucada demanada no s'ha pogut afegir (fallback)"),
+});
 export const calendarLinksOutput = z.object({ calendarLinks: z.unknown() });
 export const referencesOutput = z.object({ references: z.unknown() });
 export const recordingsOutput = z.object({ recordings: z.unknown() });

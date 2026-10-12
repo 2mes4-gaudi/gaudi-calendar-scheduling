@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.0 — 2026-10-12
+
+- **Sala de videotrucada SEMPRE a cada reserva**: `bookings-create` afegeix la
+  integració del setting `default-location` (per defecte **google-meet**) si el
+  cridador no n'indica cap. Si la integració no està disponible (Google encara
+  no connectat), reintenta amb la ubicació per defecte de l'event type i
+  retorna `locationNote` perquè l'agent ho expliqui i ofereixi `calendars-connect`.
+- Nou setting `default-location` (google-meet | cal-video | none | ...).
+- Nova acció `apps-enable` (activar/desactivar apps de Cal.diy, ex: google-meet).
+
 ## 0.3.1 — 2026-10-12
 
 - `bookings-cancel`: si no s'indica motiu, se n'envia un de genèric (l'API v2

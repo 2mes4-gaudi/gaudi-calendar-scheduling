@@ -4,6 +4,7 @@ import type { SchedulingContext } from "../../ports/context.js";
 import type {
   adminBootstrapInput,
   adminDeploymentInput,
+  appsEnableInput,
   apiKeysCreateInput,
   apiKeysListInput,
   apiKeysRevokeInput,
@@ -147,6 +148,14 @@ export async function adminBootstrap(input: z.infer<typeof adminBootstrapInput>,
   }
 
   return { users: results };
+}
+
+/** Activa/desactiva una app de Cal.diy (p. ex. google-meet per a sales de videotrucada). */
+export async function appsEnable(input: z.infer<typeof appsEnableInput>, ctx: SchedulingContext) {
+  const { calcomDb } = adminOf(ctx);
+  const enabled = input.enabled ?? true;
+  const res = await calcomDb.setAppEnabled(input.slug, enabled);
+  return { slug: res.slug, enabled: res.enabled };
 }
 
 export async function apiKeysList(input: z.infer<typeof apiKeysListInput>, ctx: SchedulingContext) {

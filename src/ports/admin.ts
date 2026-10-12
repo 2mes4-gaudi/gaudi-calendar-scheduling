@@ -59,6 +59,8 @@ export interface CalendarAdminStore {
   getApp(slug: string): Promise<{ slug: string; enabled: boolean; keys: Record<string, unknown> | null } | undefined>;
   /** Desa les keys de l'app i (opcionalment) l'activa. */
   setAppKeys(slug: string, keys: Record<string, unknown>, enabled?: boolean): Promise<{ slug: string; enabled: boolean }>;
+  /** Activa/desactiva una app existent (sense tocar les keys). */
+  setAppEnabled(slug: string, enabled: boolean): Promise<{ slug: string; enabled: boolean }>;
   /** Credencials de calendari connectades de l'usuari (type LIKE '%calendar%' o apps de calendari). */
   listCalendarCredentials(userId: number): Promise<CalendarCredentialRow[]>;
   /** Calendari de destinació de l'usuari (si en té). */

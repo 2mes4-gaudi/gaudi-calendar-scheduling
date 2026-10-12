@@ -18,6 +18,7 @@ import type {
   bookingsTranscriptsInput,
 } from "../model/calendar.js";
 import { publishSchedulingEvent } from "./events.js";
+import { getDefaultLocation } from "./reminders-service.js";
 import { API_VERSIONS, compact } from "./versions.js";
 
 export async function listBookings(input: z.infer<typeof bookingsListInput>, ctx: SchedulingContext) {
@@ -37,6 +38,15 @@ export async function getBookingBySeat(input: z.infer<typeof bookingsBySeatInput
 }
 
 export async function createBooking(input: z.infer<typeof bookingsCreateInput>, ctx: SchedulingContext) {
+  // Sala de videotrucada SEMPRE: si el cridador no n'indica cap, s'usa el setting
+  // default-location (per defecte google-meet → sala Meet a cada reserva).
+  const configuredLocation = input.location ? undefined : await getDefaultLocation(ctx);
+  const activeLocation =
+    input.location ??
+    (configuredLocation && configuredLocation !== "none"
+      ? { type: "integration", integration: configuredLocation }
+      : undefined);
+
   const body = compact({
     eventTypeId: input.eventTypeId,
     eventTypeSlug: input.eventTypeSlug,
@@ -54,9 +64,27 @@ export async function createBooking(input: z.infer<typeof bookingsCreateInput>, 
     guests: input.guests,
     metadata: input.metadata,
     bookingFieldsResponses: input.bookingFieldsResponses,
-    location: input.location,
+    location: activeLocation,
   });
-  const res = await ctx.calcom.post("/v2/bookings", body, API_VERSIONS.bookings);
+
+  let res: unknown;
+  let locationNote: string | undefined;
+  try {
+    res = await ctx.calcom.post("/v2/bookings", body, API_VERSIONS.bookings);
+  } catch (err) {
+    const msg = (err as Error).message ?? "";
+    // Fallback: si la integració de videotrucada no està disponible (p. ex. Google
+    // encara no connectat), es reintenta amb la ubicació per defecte de l'event type.
+    if (activeLocation && /credential|integration|google|app|install|enable|not found|no .*location/i.test(msg)) {
+      const retryBody = { ...body };
+      delete retryBody.location;
+      res = await ctx.calcom.post("/v2/bookings", retryBody, API_VERSIONS.bookings);
+      locationNote = `No s'ha pogut afegir '${configuredLocation}' a la reserva (${msg.slice(0, 160)}). S'ha usat la ubicació per defecte de l'event type. Per tenir Meet sempre: connecta Google Calendar (scheduling calendars-connect).`;
+    } else {
+      throw err;
+    }
+  }
+
   const booking = unwrapData(res);
   const bookingUid = (booking as { uid?: string })?.uid;
   await publishSchedulingEvent(ctx, "scheduling.booking-created", {
@@ -66,8 +94,9 @@ export async function createBooking(input: z.infer<typeof bookingsCreateInput>, 
     attendeeName: input.attendeeName,
     eventTypeId: input.eventTypeId,
     eventTypeSlug: input.eventTypeSlug,
+    location: activeLocation ?? undefined,
   });
-  return { booking };
+  return { booking, locationNote };
 }
 
 export async function cancelBooking(input: z.infer<typeof bookingsCancelInput>, ctx: SchedulingContext) {

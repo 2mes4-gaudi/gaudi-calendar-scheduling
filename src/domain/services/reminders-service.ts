@@ -22,6 +22,9 @@ import { API_VERSIONS } from "./versions.js";
 
 export const SETTINGS_KEY_DEVICE = "reminder-device";
 export const SETTINGS_KEY_DEFAULT_MINUTES = "default-reminder-minutes";
+export const SETTINGS_KEY_LOCATION = "default-location";
+/** Integració de videotrucada per defecte a cada reserva (l'usuari vol SEMPRE sala Meet). */
+export const DEFAULT_BOOKING_INTEGRATION = "google-meet";
 export const DEVICE_NONE = "none";
 export const REMINDERS_COLLECTION = "scheduling_reminders";
 export const SETTINGS_COLLECTION = "scheduling_settings";
@@ -47,6 +50,11 @@ export async function getDevice(ctx: SchedulingContext): Promise<string> {
   return (await getSetting(ctx, SETTINGS_KEY_DEVICE)) ?? DEVICE_NONE;
 }
 
+/** Integració de videotrucada per defecte (per defecte google-meet; 'none' per desactivar). */
+export async function getDefaultLocation(ctx: SchedulingContext): Promise<string> {
+  return (await getSetting(ctx, SETTINGS_KEY_LOCATION)) ?? DEFAULT_BOOKING_INTEGRATION;
+}
+
 export async function getDefaultMinutes(ctx: SchedulingContext): Promise<number> {
   const raw = await getSetting(ctx, SETTINGS_KEY_DEFAULT_MINUTES);
   const n = Number(raw ?? 0);
@@ -66,7 +74,15 @@ export function validateSetting(key: string, value: string): string {
     }
     return String(n);
   }
-  throw new Error(`Setting desconegut '${key}'. Claus vàlides: ${SETTINGS_KEY_DEVICE}, ${SETTINGS_KEY_DEFAULT_MINUTES}`);
+  if (key === SETTINGS_KEY_LOCATION) {
+    const v = value.trim().toLowerCase();
+    // 'none' desactiva el location per defecte; la resta són slugs d'integració (google-meet...)
+    if (!v) throw new Error("default-location no pot ser buit (usa 'none' per desactivar)");
+    return v;
+  }
+  throw new Error(
+    `Setting desconegut '${key}'. Claus vàlides: ${SETTINGS_KEY_DEVICE}, ${SETTINGS_KEY_DEFAULT_MINUTES}, ${SETTINGS_KEY_LOCATION}`
+  );
 }
 
 export async function settingsGet(input: z.infer<typeof settingsGetInput>, ctx: SchedulingContext) {
@@ -74,9 +90,10 @@ export async function settingsGet(input: z.infer<typeof settingsGetInput>, ctx: 
     return { settings: { [input.key]: (await getSetting(ctx, input.key)) ?? "" } };
   }
   const settings = await listSettings(ctx);
-  // Defaults efectius: device none i 0 minuts.
+  // Defaults efectius: device none, 0 minuts i location google-meet (sala Meet sempre).
   if (settings[SETTINGS_KEY_DEVICE] === undefined) settings[SETTINGS_KEY_DEVICE] = DEVICE_NONE;
   if (settings[SETTINGS_KEY_DEFAULT_MINUTES] === undefined) settings[SETTINGS_KEY_DEFAULT_MINUTES] = "0";
+  if (settings[SETTINGS_KEY_LOCATION] === undefined) settings[SETTINGS_KEY_LOCATION] = DEFAULT_BOOKING_INTEGRATION;
   return { settings };
 }
 

@@ -82,6 +82,23 @@ node dist/bin.js scheduling booking-url demo "" suport --json
 node dist/bin.js scheduling booking-url demo eric "" acme --json
 ```
 
+## Sala de videotrucada SEMPRE (Meet)
+
+Cada reserva creada amb `bookings-create` afegeix automàticament la sala de
+videotrucada del setting `default-location` (per defecte **google-meet**).
+No cal indicar cap location; si mai cal canviar-ho:
+
+```bash
+node dist/bin.js scheduling settings-set default-location google-meet --json
+node dist/bin.js scheduling settings-set default-location none --json   # desactivar
+```
+
+Si `bookings-create` retorna `locationNote`, la sala demanada no s'ha pogut
+afegir (normalment perquè Google Calendar encara no està connectat): informa
+l'usuari del que diu la nota i ofereix connectar-lo (`calendars-connect`). Un cop
+connectat, totes les reserves noves portaran la sala Meet. Si cal, activa l'app
+amb `apps-enable google-meet`.
+
 ## Recordatoris («avisa'm X minuts abans») i device d'avisos
 
 Els recordatoris s'executen amb el daemon `calcom-reminders` (cada minut): si toca,
@@ -98,6 +115,7 @@ node dist/bin.js scheduling reminders-add <bookingUid> 30 "Porta els informes" -
 node dist/bin.js scheduling settings-get --json
 node dist/bin.js scheduling settings-set reminder-device telegram --json   # o ipad, none...
 node dist/bin.js scheduling settings-set default-reminder-minutes 15 --json # global per a totes les reserves (0=off)
+node dist/bin.js scheduling settings-set default-location google-meet --json # videotrucada per defecte (none = cap)
 
 # Gestió
 node dist/bin.js scheduling reminders-list --json

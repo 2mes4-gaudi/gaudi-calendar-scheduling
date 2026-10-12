@@ -93,7 +93,11 @@ test("settings: defaults (none/0), validació i persistència", async () => {
   const { ctx } = makeCtx();
 
   const defaults = await settingsGet({}, ctx as never);
-  assert.deepEqual(defaults.settings, { "reminder-device": "none", "default-reminder-minutes": "0" });
+  assert.deepEqual(defaults.settings, {
+    "reminder-device": "none",
+    "default-reminder-minutes": "0",
+    "default-location": "google-meet",
+  });
 
   const set = await settingsSet({ key: "reminder-device", value: "telegram" }, ctx as never);
   assert.deepEqual(set, { key: "reminder-device", value: "telegram" });

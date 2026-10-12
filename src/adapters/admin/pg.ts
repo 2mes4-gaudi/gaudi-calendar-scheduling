@@ -72,6 +72,15 @@ export async function createCalendarAdminStore(connectionString: string): Promis
       return { slug: rows[0].slug, enabled: Boolean(rows[0].enabled) };
     },
 
+    async setAppEnabled(slug, enabled) {
+      const { rows } = await pool.query<{ slug: string; enabled: boolean | null }>(
+        `UPDATE "App" SET enabled = $2 WHERE slug = $1 RETURNING slug, enabled`,
+        [slug, enabled]
+      );
+      if (!rows[0]) throw new Error(`No existeix cap app amb slug '${slug}' a la BD de Cal.diy`);
+      return { slug: rows[0].slug, enabled: Boolean(rows[0].enabled) };
+    },
+
     async listCalendarCredentials(userId) {
       const { rows } = await pool.query<{ id: number; type: string; appId: string | null; createdAt: Date | null }>(
         `SELECT id, type, "appId", "createdAt" FROM "Credential"
