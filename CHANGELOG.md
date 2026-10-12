@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.4 — 2026-10-12
+
+- Descripció del manifest actualitzada (és la que veu l'agent en-runtime com a
+  descripció de l'eina `feature-calendar-scheduling`): ara anuncia Google sync
+  (calendars-connect/destination), recordatoris amb device, sala de Meet
+  automàtica i administració.
+- Skill: regla explícita — MAI dir que el feature no existeix; començar sempre
+  per `calendars-status`; i què fa exactament el sync (reserves→Google,
+  conflictes de Google→Cal.diy; NO lectura/edició arbitrària d'esdeveniments).
+
 ## 0.4.3 — 2026-10-12
 
 - README: guia completa de configuració de Google Calendar (client OAuth,

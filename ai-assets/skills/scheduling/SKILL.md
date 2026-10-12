@@ -129,6 +129,20 @@ Quan l'usuari demani que l'avisin (a un device concret), tria el device amb
 
 ## Calendaris externs (Google): connectar i sincronitzar
 
+**MAI diguis que aquest feature no existeix o que no es pot fer.** SEMPRE comença
+amb `scheduling calendars-status --json` (mostra app configurada, credencials,
+calendaris connectats i destinació) i segueix el flux d'aquesta secció.
+
+**Què fa exactament el sync (i què no):**
+- Cal.diy → Google: cada reserva s'escriu al **calendari de referència** triat
+  (`destination-calendar-set`) — així veus les cites al Google Calendar.
+- Google → Cal.diy: els calendaris seleccionats (SelectedCalendar, el principal
+  s'afegeix sol en connectar) compten com a **ocupat** i bloquegen franges.
+- NO hi ha lectura/edició arbitrària d'esdeveniments de Google (llistar o
+  modificar esdeveniments lliures del compte): això NO es pot fer amb aquest
+  feature i no s'ha de prometre. Si l'usuari vol això, el flux és: connectar
+  (sync de reserves + conflictes) i fer els canvis de reserves des del mòdul.
+
 ```bash
 # 1) Estat (app activada? credencials? calendaris connectats? destinació?)
 node dist/bin.js scheduling calendars-status --json

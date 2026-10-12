@@ -1,6 +1,6 @@
 {
   "name": "@gaudi/calendar.scheduling",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "Gestió de calendari i reserves sobre Cal.diy (Cal.com): event types, disponibilitat, bookings, programes i URLs de reserva. Integració de producte open source (SPEC §15c) amb CLI agent-friendly.",
   "type": "module",
   "main": "dist/index.js",

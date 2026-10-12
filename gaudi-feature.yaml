@@ -2,8 +2,8 @@
   "manifest": "1.3",
   "id": "calendar.scheduling",
   "name": "Calendar Scheduling",
-  "version": "0.4.3",
-  "description": "Gestió de calendari i reserves sobre Cal.diy (Cal.com): event types, disponibilitat (slots), schedules, bookings (crear/get/cancel·lar/reprogramar/confirmar), enllaços de calendari i generació d'URLs de reserva amb opcions. Integració de producte open source (SPEC §15c): stack Cal.diy declarat a platform_services[] i jobs interns via daemons[].",
+  "version": "0.4.4",
+  "description": "Calendari, reserves i sincronització amb Google Calendar (Cal.diy): event types, disponibilitat (slots), schedules i bookings (crear/get/reprogramar/cancel·lar/confirmar/calendar-links). Totes les reserves porten sala de videotrucada automàtica (Meet per defecte) i es poden programar recordatoris que desperten l'agent per avisar al device configurat (reminder-device; per defecte none). Google Calendar: estat/connexió OAuth (calendars-connect), calendari de referència on s'escriuen totes les reserves (destination-calendar-set) i conflictes dels calendaris seleccionats; flux multi-compte. Inclou administració d'usuaris i API keys i configuració (settings-set).",
   "author": "2mes4-gaudi",
   "repository": {
     "type": "github",
