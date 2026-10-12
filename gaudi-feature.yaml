@@ -2,7 +2,7 @@
   "manifest": "1.3",
   "id": "calendar.scheduling",
   "name": "Calendar Scheduling",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "description": "Gestió de calendari i reserves sobre Cal.diy (Cal.com): event types, disponibilitat (slots), schedules, bookings (crear/get/cancel·lar/reprogramar/confirmar), enllaços de calendari i generació d'URLs de reserva amb opcions. Integració de producte open source (SPEC §15c): stack Cal.diy declarat a platform_services[] i jobs interns via daemons[].",
   "author": "2mes4-gaudi",
   "repository": {
@@ -77,7 +77,11 @@
     { "id": "scheduling.schedules-update", "destructive": false, "permission": "scheduling.write" },
     { "id": "scheduling.schedules-delete", "destructive": true, "confirm": "required", "permission": "scheduling.delete" },
     { "id": "scheduling.booking-url", "destructive": false },
-    { "id": "scheduling.cron-tick", "destructive": false, "permission": "scheduling.write" }
+    { "id": "scheduling.cron-tick", "destructive": false, "permission": "scheduling.write" },
+    { "id": "scheduling.admin-bootstrap", "destructive": false, "permission": "scheduling.write" },
+    { "id": "scheduling.api-keys-list", "destructive": false },
+    { "id": "scheduling.api-keys-create", "destructive": false, "permission": "scheduling.write" },
+    { "id": "scheduling.api-keys-revoke", "destructive": true, "confirm": "required", "permission": "scheduling.delete" }
   ],
   "credentials": [
     {
@@ -154,6 +158,16 @@
       "secret": false,
       "scope": "platform",
       "usedBy": ["scheduling.booking-url", "scheduling.slots-list"]
+    },
+    {
+      "id": "db-url",
+      "envVar": "GAUDI_CALENDAR_DB_URL",
+      "description": "Postgres de Cal.diy (mòdul d'administració)",
+      "descriptionLong": "URL interna de la BD de Cal.diy (postgres://gaudi:<pw>@calcom-db-postgres:5432/postgres) per al provisioning d'usuaris i API keys des del CLI (la UI ho gateja com a funció comercial). Es copia del Secret calcom-db-postgres-secret. Els usuaris de plataforma es llegeixen de POSTGRES_URL (kernel_user_profiles).",
+      "required": false,
+      "secret": true,
+      "scope": "platform",
+      "usedBy": ["scheduling.admin-bootstrap", "scheduling.api-keys-create", "scheduling.api-keys-revoke"]
     },
     {
       "id": "disable-signup",

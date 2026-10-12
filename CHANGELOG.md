@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0 — 2026-10-11
+
+- **Mòdul d'administració** (la UI de Cal.diy gateja les API keys com a funció
+  comercial): `admin-bootstrap` (provisiona usuaris de plataforma a Cal.diy amb
+  horari per defecte i API key; idempotent), `api-keys-list/create/revoke`
+  directament sobre la BD del producte (sha256 sense prefix, mecànica nativa).
+- Nous ports `CalendarAdminStore` / `PlatformUsersReader` (adapters pg).
+- Env nova: `GAUDI_CALENDAR_DB_URL` (BD de Cal.diy; usuaris de plataforma via
+  `POSTGRES_URL`). Tests nous (20 en total).
+
 ## 0.1.4 — 2026-10-11
 
 - calcom-api: límit de memòria 768Mi → 2Gi (OOMKilled al bootstrap de Nest).

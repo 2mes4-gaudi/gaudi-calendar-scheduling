@@ -82,6 +82,25 @@ node dist/bin.js scheduling booking-url demo "" suport --json
 node dist/bin.js scheduling booking-url demo eric "" acme --json
 ```
 
+## Administració (provisioning d'usuaris i API keys)
+
+La UI de Cal.diy gateja la creació d'API keys com a «funció comercial»; aquestes
+accions ho fan directament (per això l'accés és CLI-first). Requereixen
+`GAUDI_CALENDAR_DB_URL` + `POSTGRES_URL` configurats:
+
+```bash
+# Crea/provisiona tots els usuaris de plataforma (usuari + horari Mon-Fri 9-17 + API key si no en té)
+node dist/bin.js scheduling admin-bootstrap --json
+
+# Un usuari concret amb username explícit (idempotent; la key només es mostra en crear-la)
+node dist/bin.js scheduling admin-bootstrap ericmora82@gmail.com ericmora --json
+
+# Gestió de claus
+node dist/bin.js scheduling api-keys-list ericmora82@gmail.com --json
+node dist/bin.js scheduling api-keys-create ericmora82@gmail.com "cli agent" --json
+node dist/bin.js scheduling api-keys-revoke <id> --yes --json
+```
+
 ## Daemons
 
 Els daemons `calcom-cron` (cada 5 min) i `calcom-maintenance` (horari) executen

@@ -1,4 +1,5 @@
 import type { ServiceContext, MessageBus } from "@gaudi/core";
+import type { CalendarAdminStore, PlatformUsersReader } from "./admin.js";
 import type { CalcomApi } from "./calcom.js";
 
 /** Configuració del feature (resolta de l'entorn pel runtime — mai als handlers). */
@@ -15,6 +16,10 @@ export interface CalendarConfig {
   defaultTimeZone?: string;
   /** Valor per defecte de l'header cal-api-version. */
   apiVersion: string;
+  /** Postgres de Cal.diy (mòdul d'administració). */
+  calendarDbUrl?: string;
+  /** Postgres de la plataforma (usuaris registrats; per defecte POSTGRES_URL). */
+  platformDbUrl?: string;
 }
 
 /**
@@ -30,4 +35,9 @@ export interface SchedulingContext extends ServiceContext {
   messageBus: MessageBus;
   /** Rellotge injectable (tests). */
   clock: () => Date;
+  /** Mòdul d'administració (provisioning usuaris/API keys) — només si hi ha BDs configurades. */
+  admin?: {
+    calcomDb: CalendarAdminStore;
+    platformUsers: PlatformUsersReader;
+  };
 }

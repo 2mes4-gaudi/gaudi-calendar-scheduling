@@ -13,6 +13,7 @@ import {
 import type { CalcomApi } from "./ports/calcom.js";
 import type { CalendarConfig, SchedulingContext } from "./ports/context.js";
 import { buildRegistry } from "./domain/actions/index.js";
+import { createCalendarAdminStore, createPlatformUsersReader } from "./adapters/admin/pg.js";
 import {
   createClientFromCredentials,
   createEnvCredentialProvider,
@@ -68,6 +69,8 @@ export interface RuntimeOptions {
   clock?: () => Date;
   noConfig?: boolean;
   fetchImpl?: typeof fetch;
+  /** Mòdul d'administració injectable (tests). */
+  admin?: SchedulingContext["admin"];
 }
 
 export interface SchedulingRuntime {
@@ -99,6 +102,16 @@ export async function buildRuntime(opts: RuntimeOptions = {}): Promise<Schedulin
     messageBus,
     clock: opts.clock ?? (() => new Date()),
   };
+
+  // Mòdul d'administració (usuaris/API keys): només si hi ha les BDs configurades.
+  if (opts.admin) {
+    ctx.admin = opts.admin;
+  } else if (!opts.noConfig && config.calendarDbUrl && config.platformDbUrl) {
+    ctx.admin = {
+      calcomDb: await createCalendarAdminStore(config.calendarDbUrl),
+      platformUsers: await createPlatformUsersReader(config.platformDbUrl),
+    };
+  }
 
   return { registry: buildRegistry(), ctx };
 }

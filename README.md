@@ -49,7 +49,12 @@ completa per a agents i un stack de producte declaratiu desplegat a K3s.
    gaudi env sync-k8s --namespace gaudi-platform
    # després, a la config de calcom-web: NEXT_PUBLIC_DISABLE_SIGNUP=true (i redeploy del servei)
    ```
-5. **Verificació**: `node dist/bin.js scheduling health --json` (ok: true).
+5. **Provisioning d'admin** (API key inclosa — la UI la gateja com a comercial):
+   ```bash
+   node dist/bin.js scheduling admin-bootstrap ericmora82@gmail.com ericmora --json
+   # → desa GAUDI_CALENDAR_API_KEY (la key retornada) i GAUDI_CALENDAR_DEFAULT_USERNAME=ericmora
+   ```
+6. **Verificació**: `node dist/bin.js scheduling health --json` (ok: true).
 
 ## Imatges del producte (CI)
 
@@ -61,6 +66,22 @@ de `calcom/cal.diy` **pinat** (`v6.2.0`) i publicades a ghcr:
 - `ghcr.io/2mes4-gaudi/caldiy-api-v2:v6.2.0` (API v2 standalone; upstream no publica imatge)
 
 Upgrade del producte = bump del tag al manifest + release del feature.
+
+## Mòdul d'administració (usuaris i API keys)
+
+La UI de Cal.diy presenta la creació d'API keys com a funció comercial. Com que
+l'operativa és **CLI-first**, el feature inclou un mòdul d'administració que
+provisiona directament a la BD de Cal.diy amb la mateixa mecànica del producte
+(`hashedKey = sha256(key sense prefix)`, key presentada `<prefix><key>`):
+
+- `scheduling admin-bootstrap [email] [username]` — crea els usuaris de
+  plataforma a Cal.diy (usuari + horari per defecte Mon-Fri 9-17 + API key si no
+  en té), idempotent. Sense email → tots els registrats (`kernel_user_profiles`).
+- `scheduling api-keys-list <email>` · `api-keys-create <email> [nota]` ·
+  `api-keys-revoke <id> --yes`.
+
+Requereix: `GAUDI_CALENDAR_DB_URL` (BD de Cal.diy; del Secret
+`calcom-db-postgres-secret`) i `POSTGRES_URL` (usuaris de plataforma).
 
 ## Operació
 

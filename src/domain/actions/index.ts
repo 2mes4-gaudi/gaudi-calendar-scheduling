@@ -3,6 +3,14 @@ import { createRegistry, type ActionRegistry, type ServiceContext } from "@gaudi
 import type { SchedulingContext } from "../../ports/context.js";
 import { healthOutput } from "../model/health.js";
 import {
+  adminBootstrapInput,
+  adminBootstrapOutput,
+  apiKeysCreateInput,
+  apiKeysCreateOutput,
+  apiKeysListInput,
+  apiKeysListOutput,
+  apiKeysRevokeInput,
+  apiKeysRevokeOutput,
   bookingUrlInput,
   bookingUrlOutput,
   bookingsBySeatInput,
@@ -51,6 +59,7 @@ import {
   bookingOutput,
 } from "../model/calendar.js";
 import { buildBookingUrl } from "../services/booking-url.js";
+import { adminBootstrap, apiKeysCreate, apiKeysList, apiKeysRevoke } from "../services/admin-service.js";
 import {
   cancelBooking,
   confirmBooking,
@@ -394,6 +403,45 @@ export function buildRegistry(): ActionRegistry {
     outputSchema: cronTickOutput,
     handler: cronTick,
     meta: { destructive: false, permission: "scheduling.write" },
+  });
+
+  // ── Administració (provisioning; la UI ho gateja com a "funció comercial") ──
+  register(registry, {
+    id: "scheduling.admin-bootstrap",
+    description:
+      "Provisiona a Cal.diy els usuaris registrats a la plataforma (usuari + horari per defecte Mon-Fri 9-17 + API key si no en té): idempotent. Sense email → tots; amb email/username → un de concret.",
+    inputSchema: adminBootstrapInput,
+    outputSchema: adminBootstrapOutput,
+    handler: adminBootstrap,
+    meta: { destructive: false, permission: "scheduling.write" },
+  });
+
+  register(registry, {
+    id: "scheduling.api-keys-list",
+    description: "Llista les API keys d'un usuari de Cal.diy (id, nota, creació, darrer ús).",
+    inputSchema: apiKeysListInput,
+    outputSchema: apiKeysListOutput,
+    handler: apiKeysList,
+    meta: { destructive: false },
+  });
+
+  register(registry, {
+    id: "scheduling.api-keys-create",
+    description:
+      "Crea una API key per a un usuari de Cal.diy i la mostra en pla (només un cop). Mecànica del producte: hashedKey=sha256(key sense prefix).",
+    inputSchema: apiKeysCreateInput,
+    outputSchema: apiKeysCreateOutput,
+    handler: apiKeysCreate,
+    meta: { destructive: false, permission: "scheduling.write" },
+  });
+
+  register(registry, {
+    id: "scheduling.api-keys-revoke",
+    description: "Revoca (elimina) una API key pel seu id.",
+    inputSchema: apiKeysRevokeInput,
+    outputSchema: apiKeysRevokeOutput,
+    handler: apiKeysRevoke,
+    meta: { destructive: true, confirm: "required", permission: "scheduling.delete" },
   });
 
   return registry;

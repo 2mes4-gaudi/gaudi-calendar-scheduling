@@ -234,6 +234,63 @@ export const cronTickInput = z.object({
     .describe(`Jobs interns de Cal.diy (per defecte tots): ${KNOWN_CRON_JOBS.join(", ")}`),
 });
 
+// ── Administració (provisioning d'usuaris i API keys; la UI ho gateja com a "comercial") ──
+
+export const adminBootstrapInput = z.object({
+  email: z.string().optional().describe("Email de l'usuari Cal.diy (per defecte: tots els usuaris registrats a la plataforma)"),
+  username: z.string().optional().describe("Username Cal.diy (per defecte derivat de l'email; només amb email explícit)"),
+  name: z.string().optional().describe("Nom visible (per defecte el del perfil de plataforma o el username)"),
+  timeZone: z.string().optional().describe("Timezone IANA (per defecte la del perfil o GAUDI_CALENDAR_DEFAULT_TIMEZONE)"),
+});
+
+export const adminBootstrapOutput = z.object({
+  users: z.array(
+    z.object({
+      email: z.string(),
+      username: z.string(),
+      created: z.boolean(),
+      scheduleId: z.number().optional(),
+      apiKey: z.string().optional().describe("Clau en pla (només es mostra en crear-la)"),
+      apiKeyId: z.string().optional(),
+    })
+  ),
+});
+
+export const apiKeysListInput = z.object({
+  email: z.string().describe("Email de l'usuari Cal.diy"),
+});
+
+export const apiKeysListOutput = z.object({
+  user: z.object({ id: z.number(), username: z.string(), email: z.string() }),
+  keys: z.array(
+    z.object({
+      id: z.string(),
+      note: z.string().nullish(),
+      createdAt: z.string().nullish(),
+      lastUsedAt: z.string().nullish(),
+      expiresAt: z.string().nullish(),
+    })
+  ),
+});
+
+export const apiKeysCreateInput = z.object({
+  email: z.string().describe("Email de l'usuari Cal.diy"),
+  note: z.string().optional().describe("Nota identificativa de la clau"),
+});
+
+export const apiKeysCreateOutput = z.object({
+  user: z.object({ id: z.number(), username: z.string(), email: z.string() }),
+  id: z.string(),
+  note: z.string(),
+  apiKey: z.string().describe("Clau en pla (només es mostra ara)"),
+});
+
+export const apiKeysRevokeInput = z.object({
+  id: z.string().describe("Id de la clau (scheduling api-keys-list)"),
+});
+
+export const apiKeysRevokeOutput = z.object({ revoked: z.boolean(), id: z.string() });
+
 // ── Outputs ───────────────────────────────────────────────────────────────
 
 export const meOutput = z.object({ user: z.unknown() });

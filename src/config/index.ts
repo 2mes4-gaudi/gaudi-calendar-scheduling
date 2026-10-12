@@ -34,6 +34,8 @@ export function loadCalendarConfig(env: NodeJS.ProcessEnv = process.env): Calend
     defaultUsername: env.GAUDI_CALENDAR_DEFAULT_USERNAME,
     defaultTimeZone: env.GAUDI_CALENDAR_DEFAULT_TIMEZONE,
     apiVersion: env.GAUDI_CALENDAR_API_VERSION ?? API_VERSIONS.bookings,
+    calendarDbUrl: env.GAUDI_CALENDAR_DB_URL,
+    platformDbUrl: env.POSTGRES_URL,
   };
 }
 

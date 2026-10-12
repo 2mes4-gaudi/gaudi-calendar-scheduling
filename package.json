@@ -1,6 +1,6 @@
 {
   "name": "@gaudi/calendar.scheduling",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "description": "Gestió de calendari i reserves sobre Cal.diy (Cal.com): event types, disponibilitat, bookings, programes i URLs de reserva. Integració de producte open source (SPEC §15c) amb CLI agent-friendly.",
   "type": "module",
   "main": "dist/index.js",
@@ -17,11 +17,13 @@
     "@gaudi/core": "git+https://github.com/2mes4-gaudi/gaudi-core.git#v1.9.3",
     "commander": "^12.0.0",
     "yaml": "^2.6.0",
-    "zod": "^3.23.0"
+    "zod": "^3.23.0",
+    "pg": "^8.12.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "typescript": "^5.5.0"
+    "typescript": "^5.5.0",
+    "@types/pg": "^8.11.0"
   },
   "license": "MIT"
 }
